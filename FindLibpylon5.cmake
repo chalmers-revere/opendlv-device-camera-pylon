@@ -23,6 +23,7 @@ MARK_AS_ADVANCED(PYLON5_INCLUDE_DIR)
 FIND_LIBRARY(PYLON5_PYLONC
              NAMES pylonc
              PATHS ${LIBPYLON5DIR}/lib/
+                    /opt/pylon5/lib/
                     /opt/pylon5/lib64/)
 MARK_AS_ADVANCED(PYLON5_PYLONC)
 
