@@ -141,9 +141,14 @@ int32_t main(int32_t argc, char **argv) {
             // Enable PTP for the current camera.
             checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "GevIEEE1588", 1));
 
-            // Setup pixel format. TODO: Choose YUV.
-            if (PylonDeviceFeatureIsAvailable(handleForDevice, "EnumEntry_PixelFormat_Mono8")) {
-                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "PixelFormat", "Mono8" ));
+            // Setup pixel format..
+            if (PylonDeviceFeatureIsAvailable(handleForDevice, "EnumEntry_PixelFormat_YUV422_YUYV_Packed")) {
+                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "PixelFormat", "YUV422_YUYV_Packed" ));
+            }
+            else {
+                std::cerr << "[opendlv-device-camera-pylon]: Could not set YUV422_YUYV_Packed pixel format." << std::endl;
+                PylonTerminate();
+                return 1;
             }
 
             // If available for the given device, disable acquisition start trigger.
@@ -251,12 +256,7 @@ int32_t main(int32_t argc, char **argv) {
 
                 sharedMemoryI420->lock();
                 {
-//                    libyuv::YUY2ToI420(imageBuffer, WIDTH * 2 /* 2*WIDTH for YUYV 422*/,
-//                                       reinterpret_cast<uint8_t*>(sharedMemoryI420->data()), WIDTH,
-//                                       reinterpret_cast<uint8_t*>(sharedMemoryI420->data()+(WIDTH * HEIGHT)), WIDTH/2,
-//                                       reinterpret_cast<uint8_t*>(sharedMemoryI420->data()+(WIDTH * HEIGHT + ((WIDTH * HEIGHT) >> 2))), WIDTH/2,
-//                                       WIDTH, HEIGHT);
-                    libyuv::I400ToI420(imageBuffer, WIDTH /* WIDTH for grayscale*/,
+                    libyuv::YUY2ToI420(imageBuffer, WIDTH * 2 /* 2*WIDTH for YUYV 422*/,
                                        reinterpret_cast<uint8_t*>(sharedMemoryI420->data()), WIDTH,
                                        reinterpret_cast<uint8_t*>(sharedMemoryI420->data()+(WIDTH * HEIGHT)), WIDTH/2,
                                        reinterpret_cast<uint8_t*>(sharedMemoryI420->data()+(WIDTH * HEIGHT + ((WIDTH * HEIGHT) >> 2))), WIDTH/2,
