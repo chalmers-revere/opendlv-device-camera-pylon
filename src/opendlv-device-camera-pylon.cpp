@@ -138,6 +138,9 @@ int32_t main(int32_t argc, char **argv) {
                 }
             }
 
+            // Enable PTP for the current camera.
+            checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "GevIEEE1588", 1));
+
             // Setup pixel format. TODO: Choose YUV.
             if (PylonDeviceFeatureIsAvailable(handleForDevice, "EnumEntry_PixelFormat_Mono8")) {
                 checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "PixelFormat", "Mono8" ));
