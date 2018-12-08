@@ -5,7 +5,7 @@ for the OpenDLV software ecosystem. This microservice provides the captured fram
 in two separate shared memory areas, one for a picture in [I420 format](https://wiki.videolan.org/YUV/#I420)
 and one in ARGB format.
 
-[![Build Status](https://travis-ci.org/chalmers-revere/opendlv-device-camera-pylon.svg?branch=master)](https://travis-ci.org/chalmers-revere/opendlv-device-camera-pylon) [![License: GPLv3](https://img.shields.io/badge/license-GPL--3-blue.svg
+[![License: GPLv3](https://img.shields.io/badge/license-GPL--3-blue.svg
 )](https://www.gnu.org/licenses/gpl-3.0.txt)
 
 
