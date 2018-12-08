@@ -19,6 +19,7 @@
 
 #include <pylonc/PylonC.h>
 
+#include <sys/time.h>
 #include <libyuv.h>
 #include <X11/Xlib.h>
 
@@ -223,6 +224,24 @@ int32_t main(int32_t argc, char **argv) {
                 std::exit(1);
             }
 
+            // Determine timebase.
+            int64_t absoluteCameraTimebaseInMicroseconds{0};
+            {
+                struct timeval epochTime{};
+                gettimeofday(&epochTime, nullptr);
+
+                checkForErrorAndExitWhenError(PylonDeviceExecuteCommandFeature(handleForDevice, "GevTimestampControlLatch"));
+
+                int64_t cameraTimeStamp{0};
+                checkForErrorAndExitWhenError(PylonDeviceGetIntegerFeature(handleForDevice, "GevTimestampValue", &cameraTimeStamp));
+
+                absoluteCameraTimebaseInMicroseconds = static_cast<int64_t>(epochTime.tv_sec) * static_cast<int64_t>(1000 * 1000) + static_cast<int64_t>(epochTime.tv_usec);
+                absoluteCameraTimebaseInMicroseconds -= cameraTimeStamp/1000;
+                if (VERBOSE) {
+                    std::clog << "[opendlv-device-camera-pylon]: Camera time base in microseconds: " << absoluteCameraTimebaseInMicroseconds << std::endl;
+                }
+            }
+
             // Accessing the low-level X11 data display.
             Display* display{nullptr};
             Visual* visual{nullptr};
@@ -251,8 +270,8 @@ int32_t main(int32_t argc, char **argv) {
                 }
                 checkForErrorAndExitWhenError(res);
 
-                // TODO: Check grabResult.Status == Grabbed / !Failed
-//                std::cout << "Timestamp = " << grabResult.TimeStamp << std::endl;
+                // TODO: Check grabResult.Status == Grabbed / !Failed (compile error?)
+                //int64_t timeStampInMicroseconds{absoluteCameraTimebaseInMicroseconds + (grabResult.TimeStamp/1000)};
 
                 sharedMemoryI420->lock();
                 {
