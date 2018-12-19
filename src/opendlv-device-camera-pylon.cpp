@@ -228,17 +228,18 @@ int32_t main(int32_t argc, char **argv) {
             int64_t absoluteCameraTimebaseInMicroseconds{0};
             {
                 struct timeval epochTime{};
-                gettimeofday(&epochTime, nullptr);
-
-                checkForErrorAndExitWhenError(PylonDeviceExecuteCommandFeature(handleForDevice, "GevTimestampControlLatch"));
+                {
+                    gettimeofday(&epochTime, nullptr);
+                    checkForErrorAndExitWhenError(PylonDeviceExecuteCommandFeature(handleForDevice, "GevTimestampControlLatch"));
+                }
 
                 int64_t cameraTimeStamp{0};
                 checkForErrorAndExitWhenError(PylonDeviceGetIntegerFeature(handleForDevice, "GevTimestampValue", &cameraTimeStamp));
 
                 absoluteCameraTimebaseInMicroseconds = static_cast<int64_t>(epochTime.tv_sec) * static_cast<int64_t>(1000 * 1000) + static_cast<int64_t>(epochTime.tv_usec);
-                absoluteCameraTimebaseInMicroseconds -= cameraTimeStamp/1000;
+                absoluteCameraTimebaseInMicroseconds -= cameraTimeStamp/static_cast<int64_t>(1000);
                 if (VERBOSE) {
-                    std::clog << "[opendlv-device-camera-pylon]: Camera time base in microseconds: " << absoluteCameraTimebaseInMicroseconds << std::endl;
+                    std::clog << "[opendlv-device-camera-pylon]: Camera time base in microseconds: " << cameraTimeStamp << ", mapped to local time: " << absoluteCameraTimebaseInMicroseconds << std::endl;
                 }
             }
 
@@ -271,7 +272,10 @@ int32_t main(int32_t argc, char **argv) {
                 checkForErrorAndExitWhenError(res);
 
                 // TODO: Check grabResult.Status == Grabbed / !Failed (compile error?)
-                //int64_t timeStampInMicroseconds{absoluteCameraTimebaseInMicroseconds + (grabResult.TimeStamp/1000)};
+                int64_t timeStampInMicroseconds = absoluteCameraTimebaseInMicroseconds + (grabResult.TimeStamp/static_cast<int64_t>(1000));
+                if (VERBOSE) {
+                    std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " microseconds." << std::endl;
+                }
 
                 sharedMemoryI420->lock();
                 {
