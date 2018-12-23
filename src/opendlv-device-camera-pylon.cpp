@@ -276,8 +276,10 @@ int32_t main(int32_t argc, char **argv) {
                 if (VERBOSE) {
                     std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " microseconds." << std::endl;
                 }
+                cluon::data::TimeStamp ts{cluon::time::fromMicroseconds(timeStampInMicroseconds)};
 
                 sharedMemoryI420->lock();
+                sharedMemoryI420->setTimeStamp(ts);
                 {
                     libyuv::YUY2ToI420(imageBuffer, WIDTH * 2 /* 2*WIDTH for YUYV 422*/,
                                        reinterpret_cast<uint8_t*>(sharedMemoryI420->data()), WIDTH,
@@ -288,6 +290,7 @@ int32_t main(int32_t argc, char **argv) {
                 sharedMemoryI420->unlock();
 
                 sharedMemoryARGB->lock();
+                sharedMemoryARGB->setTimeStamp(ts);
                 {
                     libyuv::I420ToARGB(reinterpret_cast<uint8_t*>(sharedMemoryI420->data()), WIDTH,
                                        reinterpret_cast<uint8_t*>(sharedMemoryI420->data()+(WIDTH * HEIGHT)), WIDTH/2,
