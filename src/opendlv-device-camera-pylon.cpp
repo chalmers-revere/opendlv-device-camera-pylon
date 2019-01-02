@@ -174,6 +174,63 @@ int32_t main(int32_t argc, char **argv) {
                 }
             }
 
+            // Setup Auto functions.
+            {
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoTargetValue")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoTargetValue", 50));
+                }
+
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "GrayValueAdjustmentDampingAbs")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "GrayValueAdjustmentDampingAbs", 0.683594));
+                }
+
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "BalanceWhiteAdjustmentDampingAbs")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "BalanceWhiteAdjustmentDampingAbs", 0.976562));
+                }
+
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawLowerLimit")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawLowerLimit", 0));
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawUpperLimit")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawUpperLimit", 100));
+                }
+
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoExposureTimeAbsLowerLimit")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoExposureTimeAbsLowerLimit", 26));
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoExposureTimeAbsUpperLimit")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoExposureTimeAbsUpperLimit", 50000));
+                }
+
+                if (PylonDeviceFeatureIsAvailable(handleForDevice, "AutoFunctionProfile")) {
+                    checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "AutoFunctionProfile", "GainMinimum"));
+                }
+
+                {
+                    if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOISelector")) {
+                        checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "AutoFunctionAOISelector", "AOI1"));
+                    }
+                    if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIWidth")) {
+                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIWidth", WIDTH));
+                    }
+                    if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIHeight")) {
+                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIHeight", HEIGHT));
+                    }
+                    if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIOffsetX")) {
+                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIOffsetX", OFFSET_X));
+                    }
+                    if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIOffsetY")) {
+                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIOffsetY", OFFSET_Y));
+                    }
+                    if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIUsageIntensity")) {
+                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIUsageIntensity", 1));
+                    }
+                    if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIUsageWhiteBalance")) {
+                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIUsageWhiteBalance", 1));
+                    }
+                }
+            }
+
             // If available for the given device, disable acquisition start trigger.
             if (PylonDeviceFeatureIsAvailable(handleForDevice, "EnumEntry_TriggerSelector_AcquisitionStart")) {
                 checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "TriggerSelector", "AcquisitionStart"));
