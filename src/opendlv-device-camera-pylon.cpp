@@ -35,7 +35,7 @@ int32_t main(int32_t argc, char **argv) {
          (0 == commandlineArguments.count("width")) ||
          (0 == commandlineArguments.count("height")) ) {
         std::cerr << argv[0] << " interfaces with a Pylon camera (given by the numerical identifier, e.g., 0) and provides the captured image in two shared memory areas: one in I420 format and one in ARGB format." << std::endl;
-        std::cerr << "Usage:   " << argv[0] << " --camera=<identifier> --width=<width> --height=<height> [--name.i420=<unique name for the shared memory in I420 format>] [--name.argb=<unique name for the shared memory in ARGB format>] [--verbose]" << std::endl;
+        std::cerr << "Usage:   " << argv[0] << " --camera=<identifier> --width=<width> --height=<height> [--name.i420=<unique name for the shared memory in I420 format>] [--name.argb=<unique name for the shared memory in ARGB format>] --width=W --height=H [--offsetX=X] [--offsetY=Y] [--packetsize=1500] [--fps=17] [--verbose]" << std::endl;
         std::cerr << "         --camera:     numerical identifier for pylon-compatible camera to be used" << std::endl;
         std::cerr << "         --name.i420:  name of the shared memory for the I420 formatted image; when omitted, 'cam0.i420' is chosen" << std::endl;
         std::cerr << "         --name.argb:  name of the shared memory for the I420 formatted image; when omitted, 'cam0.argb' is chosen" << std::endl;
@@ -44,6 +44,7 @@ int32_t main(int32_t argc, char **argv) {
         std::cerr << "         --offsetX:    X for desired ROI (default: 0)" << std::endl;
         std::cerr << "         --offsetY:    Y for desired ROI (default: 0)" << std::endl;
         std::cerr << "         --packetsize: if supported by the adapter (eg., jumbo frames), use this packetsize (default: 1500)" << std::endl;
+        std::cerr << "         --fps:        desired acquisition frame rate (depends on bandwidth)" << std::endl;
         std::cerr << "         --verbose:    display captured image" << std::endl;
         std::cerr << "Example: " << argv[0] << " --camera=0 --width=640 --height=480 --verbose" << std::endl;
         retCode = 1;
@@ -55,6 +56,7 @@ int32_t main(int32_t argc, char **argv) {
         const uint32_t OFFSET_X{static_cast<uint32_t>((commandlineArguments.count("offsetX") != 0) ?std::stoi(commandlineArguments["offsetX"]) : 0)};
         const uint32_t OFFSET_Y{static_cast<uint32_t>((commandlineArguments.count("offsetY") != 0) ?std::stoi(commandlineArguments["offsetY"]) : 0)};
         const uint32_t PACKET_SIZE{static_cast<uint32_t>((commandlineArguments.count("packetsize") != 0) ?std::stoi(commandlineArguments["packetsize"]) : 1500)};
+        const float FPS{static_cast<float>((commandlineArguments.count("fps") != 0) ?std::stof(commandlineArguments["fps"]) : 17)};
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
 
         // Set up the names for the shared memory areas.
@@ -142,7 +144,7 @@ int32_t main(int32_t argc, char **argv) {
             // Enable PTP for the current camera.
             checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "GevIEEE1588", 1));
 
-            // Setup pixel format..
+            // Setup pixel format.
             if (PylonDeviceFeatureIsAvailable(handleForDevice, "EnumEntry_PixelFormat_YUV422_YUYV_Packed")) {
                 checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "PixelFormat", "YUV422_YUYV_Packed" ));
             }
@@ -150,6 +152,26 @@ int32_t main(int32_t argc, char **argv) {
                 std::cerr << "[opendlv-device-camera-pylon]: Could not set YUV422_YUYV_Packed pixel format." << std::endl;
                 PylonTerminate();
                 return 1;
+            }
+
+            // Setup Gain (Continuous).
+            if (PylonDeviceFeatureIsAvailable(handleForDevice, "GainAuto")) {
+                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "GainAuto", "Continuous"));
+            }
+
+            // Setup Gain (Raw).
+            if (PylonDeviceFeatureIsWritable(handleForDevice, "GainRaw")) {
+                checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "GainRaw", 0));
+            }
+
+            // Setup Acquisition parameters.
+            {
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AcquisitionFrameRateEnable")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "AcquisitionFrameRateEnable", 1));
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AcquisitionFrameRateAbs")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AcquisitionFrameRateAbs", FPS));
+                }
             }
 
             // If available for the given device, disable acquisition start trigger.
