@@ -86,7 +86,7 @@ int32_t main(int32_t argc, char **argv) {
             std::clog << "[opendlv-device-camera-pylon]: Data from camera '" << commandlineArguments["camera"]<< "' available in I420 format in shared memory '" << sharedMemoryI420->name() << "' (" << sharedMemoryI420->size() << ") and in ARGB format in shared memory '" << sharedMemoryARGB->name() << "' (" << sharedMemoryARGB->size() << ")." << std::endl;
 
             // Delegate to handle errors.
-            auto checkForErrorAndExitWhenError = [](GENAPIC_RESULT errorCode){
+            auto checkForErrorAndExitWhenError = [](GENAPIC_RESULT errorCode, uint32_t line){
                 if (errorCode != GENAPI_E_OK) {
                     size_t lengthOfErrorMessage{0};
                     char *errorMessage{nullptr};
@@ -95,7 +95,7 @@ int32_t main(int32_t argc, char **argv) {
                         GenApiGetLastErrorMessage(nullptr, &lengthOfErrorMessage);
                         errorMessage = reinterpret_cast<char*>(std::malloc(lengthOfErrorMessage));
                         GenApiGetLastErrorMessage(errorMessage, &lengthOfErrorMessage);
-                        std::cerr << "[opendlv-device-camera-pylon]: Error 0x" << std::hex << errorCode << std::dec << ": '" << errorMessage << "'." << std::endl;
+                        std::cerr << "[opendlv-device-camera-pylon]: Error 0x" << std::hex << errorCode << std::dec << ": '" << errorMessage << "' (line " << line << ")" << std::endl;
                         std::free(errorMessage);
                     }
                     {
@@ -116,7 +116,7 @@ int32_t main(int32_t argc, char **argv) {
 
             // What devices are available?
             size_t numberOfAvailableDevices{0};
-            checkForErrorAndExitWhenError(PylonEnumerateDevices(&numberOfAvailableDevices));
+            checkForErrorAndExitWhenError(PylonEnumerateDevices(&numberOfAvailableDevices), __LINE__);
             if (0 == numberOfAvailableDevices) {
                 std::cerr << "[opendlv-device-camera-pylon]: No pylon-compatible devices available." << std::endl;
                 PylonTerminate();
@@ -125,10 +125,10 @@ int32_t main(int32_t argc, char **argv) {
 
             // Create a handle for the desired camera.
             PYLON_DEVICE_HANDLE handleForDevice{0};
-            checkForErrorAndExitWhenError(PylonCreateDeviceByIndex(CAMERA, &handleForDevice));
+            checkForErrorAndExitWhenError(PylonCreateDeviceByIndex(CAMERA, &handleForDevice), __LINE__);
 
             // Open device.
-            checkForErrorAndExitWhenError(PylonDeviceOpen(handleForDevice, PYLONC_ACCESS_MODE_CONTROL | PYLONC_ACCESS_MODE_STREAM));
+            checkForErrorAndExitWhenError(PylonDeviceOpen(handleForDevice, PYLONC_ACCESS_MODE_CONTROL | PYLONC_ACCESS_MODE_STREAM), __LINE__);
 
             // Print device information.
             {
@@ -136,17 +136,17 @@ int32_t main(int32_t argc, char **argv) {
                 char buffer[MAX_BUFFER];
 
                 if (PylonDeviceFeatureIsReadable(handleForDevice, "DeviceModelName")) {
-                    checkForErrorAndExitWhenError(PylonDeviceFeatureToString(handleForDevice, "DeviceModelName", buffer, &MAX_BUFFER));
+                    checkForErrorAndExitWhenError(PylonDeviceFeatureToString(handleForDevice, "DeviceModelName", buffer, &MAX_BUFFER), __LINE__);
                     std::cerr << "[opendlv-device-camera-pylon]: Found camera '" << buffer << "'." << std::endl;
                 }
             }
 
             // Enable PTP for the current camera.
-            checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "GevIEEE1588", 1));
+            checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "GevIEEE1588", 1), __LINE__);
 
             // Setup pixel format.
             if (PylonDeviceFeatureIsAvailable(handleForDevice, "EnumEntry_PixelFormat_YUV422_YUYV_Packed")) {
-                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "PixelFormat", "YUV422_YUYV_Packed" ));
+                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "PixelFormat", "YUV422_YUYV_Packed"), __LINE__);
             }
             else {
                 std::cerr << "[opendlv-device-camera-pylon]: Could not set YUV422_YUYV_Packed pixel format." << std::endl;
@@ -156,116 +156,116 @@ int32_t main(int32_t argc, char **argv) {
 
             // Setup Gain (Continuous).
             if (PylonDeviceFeatureIsAvailable(handleForDevice, "GainAuto")) {
-                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "GainAuto", "Continuous"));
+                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "GainAuto", "Continuous"), __LINE__);
             }
 
             // Setup Gain (Raw).
             if (PylonDeviceFeatureIsWritable(handleForDevice, "GainRaw")) {
-                checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "GainRaw", 0));
+                checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "GainRaw", 0), __LINE__);
             }
 
             // Setup Acquisition parameters.
             {
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "AcquisitionFrameRateEnable")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "AcquisitionFrameRateEnable", 1));
+                    checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "AcquisitionFrameRateEnable", 1), __LINE__);
                 }
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "AcquisitionFrameRateAbs")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AcquisitionFrameRateAbs", FPS));
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AcquisitionFrameRateAbs", FPS), __LINE__);
                 }
             }
 
             // Setup Auto functions.
             {
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoTargetValue")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoTargetValue", 50));
+                    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoTargetValue", 50), __LINE__);
                 }
 
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "GrayValueAdjustmentDampingAbs")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "GrayValueAdjustmentDampingAbs", 0.683594));
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "GrayValueAdjustmentDampingAbs", 0.683594), __LINE__);
                 }
 
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "BalanceWhiteAdjustmentDampingAbs")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "BalanceWhiteAdjustmentDampingAbs", 0.976562));
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "BalanceWhiteAdjustmentDampingAbs", 0.976562), __LINE__);
                 }
 
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawLowerLimit")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawLowerLimit", 0));
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawLowerLimit", 0), __LINE__);
                 }
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawUpperLimit")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawUpperLimit", 100));
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawUpperLimit", 100), __LINE__);
                 }
 
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoExposureTimeAbsLowerLimit")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoExposureTimeAbsLowerLimit", 26));
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoExposureTimeAbsLowerLimit", 26), __LINE__);
                 }
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoExposureTimeAbsUpperLimit")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoExposureTimeAbsUpperLimit", 50000));
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoExposureTimeAbsUpperLimit", 50000), __LINE__);
                 }
 
                 if (PylonDeviceFeatureIsAvailable(handleForDevice, "AutoFunctionProfile")) {
-                    checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "AutoFunctionProfile", "GainMinimum"));
+                    checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "AutoFunctionProfile", "GainMinimum"), __LINE__);
                 }
 
                 {
                     if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOISelector")) {
-                        checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "AutoFunctionAOISelector", "AOI1"));
+                        checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "AutoFunctionAOISelector", "AOI1"), __LINE__);
                     }
                     if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIWidth")) {
-                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIWidth", WIDTH));
+                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIWidth", WIDTH), __LINE__);
                     }
                     if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIHeight")) {
-                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIHeight", HEIGHT));
+                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIHeight", HEIGHT), __LINE__);
                     }
                     if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIOffsetX")) {
-                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIOffsetX", OFFSET_X));
+                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIOffsetX", OFFSET_X), __LINE__);
                     }
                     if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIOffsetY")) {
-                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIOffsetY", OFFSET_Y));
+                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIOffsetY", OFFSET_Y), __LINE__);
                     }
                     if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIUsageIntensity")) {
-                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIUsageIntensity", 1));
+                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIUsageIntensity", 1), __LINE__);
                     }
                     if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIUsageWhiteBalance")) {
-                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIUsageWhiteBalance", 1));
+                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIUsageWhiteBalance", 1), __LINE__);
                     }
                 }
             }
 
             // If available for the given device, disable acquisition start trigger.
             if (PylonDeviceFeatureIsAvailable(handleForDevice, "EnumEntry_TriggerSelector_AcquisitionStart")) {
-                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "TriggerSelector", "AcquisitionStart"));
-                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "TriggerMode", "Off"));
+                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "TriggerSelector", "AcquisitionStart"), __LINE__);
+                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "TriggerMode", "Off"), __LINE__);
             }
 
             // If available for the given device, disable frame burst start trigger.
             if (PylonDeviceFeatureIsAvailable(handleForDevice, "EnumEntry_TriggerSelector_FrameBurstStart")) {
-                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "TriggerSelector", "FrameBurstStart"));
-                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "TriggerMode", "Off"));
+                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "TriggerSelector", "FrameBurstStart"), __LINE__);
+                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "TriggerMode", "Off"), __LINE__);
             }
 
             // If available for the given device, disable frame start trigger.
             if (PylonDeviceFeatureIsAvailable(handleForDevice, "EnumEntry_TriggerSelector_FrameStart")) {
-                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "TriggerSelector", "FrameStart"));
-                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "TriggerMode", "Off"));
+                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "TriggerSelector", "FrameStart"), __LINE__);
+                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "TriggerMode", "Off"), __LINE__);
             }
 
             // Define desired ROI.
             {
-                checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "Width", WIDTH));
-                checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "Height", HEIGHT));
-                checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "OffsetX", OFFSET_X));
-                checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "OffsetY", OFFSET_Y));
+                checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "Width", WIDTH), __LINE__);
+                checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "Height", HEIGHT), __LINE__);
+                checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "OffsetX", OFFSET_X), __LINE__);
+                checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "OffsetY", OFFSET_Y), __LINE__);
             }
 
             // Adjust packetsize.
             if (PylonDeviceFeatureIsWritable(handleForDevice, "GevSCPSPacketSize")) {
-                checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "GevSCPSPacketSize", PACKET_SIZE));
+                checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "GevSCPSPacketSize", PACKET_SIZE), __LINE__);
             }
 
             // What payload size do we need?
             int32_t sizeOfPayload{0};
             if (PylonDeviceFeatureIsReadable(handleForDevice, "PayloadSize")) {
-                checkForErrorAndExitWhenError(PylonDeviceGetIntegerFeatureInt32(handleForDevice, "PayloadSize", &sizeOfPayload));
+                checkForErrorAndExitWhenError(PylonDeviceGetIntegerFeatureInt32(handleForDevice, "PayloadSize", &sizeOfPayload), __LINE__);
             }
             else
             {
@@ -275,24 +275,24 @@ int32_t main(int32_t argc, char **argv) {
                 //      The stream grabber, this can be a frame grabber, needs to be open to compute the
                 //      required payload size.
                 PYLON_STREAMGRABBER_HANDLE hGrabber;
-                checkForErrorAndExitWhenError(PylonDeviceGetStreamGrabber(handleForDevice, 0, &hGrabber));
-                checkForErrorAndExitWhenError(PylonStreamGrabberOpen(hGrabber));
+                checkForErrorAndExitWhenError(PylonDeviceGetStreamGrabber(handleForDevice, 0, &hGrabber), __LINE__);
+                checkForErrorAndExitWhenError(PylonStreamGrabberOpen(hGrabber), __LINE__);
 
                 NODEMAP_HANDLE hStreamNodeMap;
-                checkForErrorAndExitWhenError(PylonStreamGrabberGetNodeMap(hGrabber, &hStreamNodeMap));
+                checkForErrorAndExitWhenError(PylonStreamGrabberGetNodeMap(hGrabber, &hStreamNodeMap), __LINE__);
 
                 NODE_HANDLE hNode;
-                checkForErrorAndExitWhenError(GenApiNodeMapGetNode(hStreamNodeMap, "PayloadSize", &hNode));
+                checkForErrorAndExitWhenError(GenApiNodeMapGetNode(hStreamNodeMap, "PayloadSize", &hNode), __LINE__);
                 if (GENAPIC_INVALID_HANDLE == hNode) {
                     std::cerr << "[opendlv-device-camera-pylon]: Could not determine size of payload." << std::endl;
                     PylonTerminate();
                     return 1;
                 }
                 int64_t i64sizeOfPayload{0};
-                checkForErrorAndExitWhenError(GenApiIntegerGetValue(hNode, &i64sizeOfPayload));
+                checkForErrorAndExitWhenError(GenApiIntegerGetValue(hNode, &i64sizeOfPayload), __LINE__);
                 sizeOfPayload = static_cast<int32_t>(i64sizeOfPayload);
 
-                checkForErrorAndExitWhenError(PylonStreamGrabberClose(hGrabber));
+                checkForErrorAndExitWhenError(PylonStreamGrabberClose(hGrabber), __LINE__);
             }
 
             // Get memory to store frames.
@@ -309,11 +309,11 @@ int32_t main(int32_t argc, char **argv) {
                 struct timeval epochTime{};
                 {
                     gettimeofday(&epochTime, nullptr);
-                    checkForErrorAndExitWhenError(PylonDeviceExecuteCommandFeature(handleForDevice, "GevTimestampControlLatch"));
+                    checkForErrorAndExitWhenError(PylonDeviceExecuteCommandFeature(handleForDevice, "GevTimestampControlLatch"), __LINE__);
                 }
 
                 int64_t cameraTimeStamp{0};
-                checkForErrorAndExitWhenError(PylonDeviceGetIntegerFeature(handleForDevice, "GevTimestampValue", &cameraTimeStamp));
+                checkForErrorAndExitWhenError(PylonDeviceGetIntegerFeature(handleForDevice, "GevTimestampValue", &cameraTimeStamp), __LINE__);
 
                 absoluteCameraTimebaseInMicroseconds = static_cast<int64_t>(epochTime.tv_sec) * static_cast<int64_t>(1000 * 1000) + static_cast<int64_t>(epochTime.tv_usec);
                 absoluteCameraTimebaseInMicroseconds -= cameraTimeStamp/static_cast<int64_t>(1000);
@@ -348,7 +348,7 @@ int32_t main(int32_t argc, char **argv) {
                 if ( (GENAPI_E_OK == res) && !bufferReady ) {
                     std::cerr << "[opendlv-device-camera-pylon]: Timeout while grabbing frame." << std::endl;
                 }
-                checkForErrorAndExitWhenError(res);
+                checkForErrorAndExitWhenError(res, __LINE__);
 
                 // TODO: Check grabResult.Status == Grabbed / !Failed (compile error?)
                 int64_t timeStampInMicroseconds = absoluteCameraTimebaseInMicroseconds + (grabResult.TimeStamp/static_cast<int64_t>(1000));
@@ -388,8 +388,8 @@ int32_t main(int32_t argc, char **argv) {
             }
 
             // Release any resources.
-            checkForErrorAndExitWhenError(PylonDeviceClose(handleForDevice));
-            checkForErrorAndExitWhenError(PylonDestroyDevice(handleForDevice));
+            checkForErrorAndExitWhenError(PylonDeviceClose(handleForDevice), __LINE__);
+            checkForErrorAndExitWhenError(PylonDestroyDevice(handleForDevice), __LINE__);
             std::free(imageBuffer);
             PylonTerminate();
         }
