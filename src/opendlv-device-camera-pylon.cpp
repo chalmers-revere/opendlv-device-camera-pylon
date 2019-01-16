@@ -37,8 +37,8 @@ int32_t main(int32_t argc, char **argv) {
         std::cerr << argv[0] << " interfaces with a Pylon camera (given by the numerical identifier, e.g., 0) and provides the captured image in two shared memory areas: one in I420 format and one in ARGB format." << std::endl;
         std::cerr << "Usage:   " << argv[0] << " --camera=<identifier> --width=<width> --height=<height> [--name.i420=<unique name for the shared memory in I420 format>] [--name.argb=<unique name for the shared memory in ARGB format>] --width=W --height=H [--offsetX=X] [--offsetY=Y] [--packetsize=1500] [--fps=17] [--verbose]" << std::endl;
         std::cerr << "         --camera:     numerical identifier for pylon-compatible camera to be used" << std::endl;
-        std::cerr << "         --name.i420:  name of the shared memory for the I420 formatted image; when omitted, 'cam0.i420' is chosen" << std::endl;
-        std::cerr << "         --name.argb:  name of the shared memory for the I420 formatted image; when omitted, 'cam0.argb' is chosen" << std::endl;
+        std::cerr << "         --name.i420:  name of the shared memory for the I420 formatted image; when omitted, 'video0.i420' is chosen" << std::endl;
+        std::cerr << "         --name.argb:  name of the shared memory for the I420 formatted image; when omitted, 'video0.argb' is chosen" << std::endl;
         std::cerr << "         --width:      desired width of a frame" << std::endl;
         std::cerr << "         --height:     desired height of a frame" << std::endl;
         std::cerr << "         --offsetX:    X for desired ROI (default: 0)" << std::endl;
@@ -60,11 +60,11 @@ int32_t main(int32_t argc, char **argv) {
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
 
         // Set up the names for the shared memory areas.
-        std::string NAME_I420{"cam0.i420"};
+        std::string NAME_I420{"video0.i420"};
         if ((commandlineArguments["name.i420"].size() != 0)) {
             NAME_I420 = commandlineArguments["name.i420"];
         }
-        std::string NAME_ARGB{"cam0.argb"};
+        std::string NAME_ARGB{"video0.argb"};
         if ((commandlineArguments["name.argb"].size() != 0)) {
             NAME_ARGB = commandlineArguments["name.argb"];
         }
@@ -188,12 +188,12 @@ int32_t main(int32_t argc, char **argv) {
                     checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "BalanceWhiteAdjustmentDampingAbs", 0.976562), __LINE__);
                 }
 
-                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawLowerLimit")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawLowerLimit", 0), __LINE__);
-                }
-                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawUpperLimit")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawUpperLimit", 100), __LINE__);
-                }
+                //if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawLowerLimit")) {
+                //    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawLowerLimit", 0), __LINE__);
+                //}
+                //if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawUpperLimit")) {
+                //    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawUpperLimit", 100), __LINE__);
+                //}
 
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoExposureTimeAbsLowerLimit")) {
                     checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoExposureTimeAbsLowerLimit", 26), __LINE__);
@@ -222,12 +222,12 @@ int32_t main(int32_t argc, char **argv) {
                     if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIOffsetY")) {
                         checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIOffsetY", OFFSET_Y), __LINE__);
                     }
-                    if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIUsageIntensity")) {
-                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIUsageIntensity", 1), __LINE__);
-                    }
-                    if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIUsageWhiteBalance")) {
-                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIUsageWhiteBalance", 1), __LINE__);
-                    }
+                    //if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIUsageIntensity")) {
+                    //    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIUsageIntensity", 1), __LINE__);
+                    //}
+                    //if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIUsageWhiteBalance")) {
+                    //    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIUsageWhiteBalance", 1), __LINE__);
+                    //}
                 }
             }
 
