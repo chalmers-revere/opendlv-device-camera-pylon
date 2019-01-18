@@ -345,6 +345,7 @@ int32_t main(int32_t argc, char **argv) {
                 PylonGrabResult_t grabResult{};
                 _Bool bufferReady{false};
                 GENAPIC_RESULT res = PylonDeviceGrabSingleFrame(handleForDevice, 0, imageBuffer, sizeOfPayload, &grabResult, &bufferReady, 500);
+                cluon::data::TimeStamp n = cluon::time::now();
                 if ( (GENAPI_E_OK == res) && !bufferReady ) {
                     std::cerr << "[opendlv-device-camera-pylon]: Timeout while grabbing frame." << std::endl;
                 }
@@ -353,7 +354,7 @@ int32_t main(int32_t argc, char **argv) {
                 // TODO: Check grabResult.Status == Grabbed / !Failed (compile error?)
                 int64_t timeStampInMicroseconds = absoluteCameraTimebaseInMicroseconds + (grabResult.TimeStamp/static_cast<int64_t>(1000));
                 if (VERBOSE) {
-                    std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " microseconds." << std::endl;
+                    std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us: host is " << cluon::time::toMicroseconds(n) << "us, delta: " << cluon::time::deltaInMicroseconds(cluon::time::fromMicroseconds(timeStampInMicroseconds), n) << "." << std::endl;
                 }
                 cluon::data::TimeStamp ts{cluon::time::fromMicroseconds(timeStampInMicroseconds)};
 
