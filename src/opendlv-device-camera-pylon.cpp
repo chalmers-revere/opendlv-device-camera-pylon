@@ -141,6 +141,12 @@ int32_t main(int32_t argc, char **argv) {
                 }
             }
 
+            // Load factory-settings named "AutoFunctions".
+            {
+                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "UserSetSelector", "AutoFunctions"), __LINE__);
+                checkForErrorAndExitWhenError(PylonDeviceExecuteCommandFeature(handleForDevice, "UserSetLoad"), __LINE__);
+            }
+
             // Enable PTP for the current camera.
             checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "GevIEEE1588", 1), __LINE__);
 
