@@ -25,6 +25,7 @@
 
 #include <cstdlib>
 #include <cstdint>
+#include <chrono>
 #include <iostream>
 #include <memory>
 
@@ -149,6 +150,19 @@ int32_t main(int32_t argc, char **argv) {
 
             // Enable PTP for the current camera.
             checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "GevIEEE1588", 1), __LINE__);
+            // Wait for 1min to get PTP synchronized.
+            {
+                using namespace std::literals::chrono_literals;
+                int8_t sixtySeconds{60};
+                std::clog << "[opendlv-device-camera-pylon]: Waiting for 60s for PTP synchronization: ";
+                do {
+                    std::this_thread::sleep_for(5s);
+                    std::clog << ".....";
+                    std::clog.flush();
+                    sixtySeconds -= 5;
+                } while (sixtySeconds >= 0);
+                std::clog << std::endl;
+            }
 
             // Setup pixel format.
             if (PylonDeviceFeatureIsAvailable(handleForDevice, "EnumEntry_PixelFormat_YUV422_YUYV_Packed")) {
