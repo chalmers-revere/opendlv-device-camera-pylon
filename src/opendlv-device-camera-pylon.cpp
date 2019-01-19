@@ -154,14 +154,70 @@ int32_t main(int32_t argc, char **argv) {
                 return 1;
             }
 
-            // Setup Gain (Continuous).
-            if (PylonDeviceFeatureIsAvailable(handleForDevice, "GainAuto")) {
-                checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "GainAuto", "Continuous"), __LINE__);
+            // Setup Auto functions.
+            {
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "GrayValueAdjustmentDampingAbs")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "GrayValueAdjustmentDampingAbs", 0.683594), __LINE__);
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "BalanceWhiteAdjustmentDampingAbs")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "BalanceWhiteAdjustmentDampingAbs", 0.976562), __LINE__);
+                }
+                if (PylonDeviceFeatureIsAvailable(handleForDevice, "AutoFunctionProfile")) {
+                    checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "AutoFunctionProfile", "GainMinimum"), __LINE__);
+                }
             }
 
-            // Setup Gain (Raw).
-            if (PylonDeviceFeatureIsWritable(handleForDevice, "GainRaw")) {
-                checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "GainRaw", 0), __LINE__);
+            // Setup AutoGain.
+            {
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawLowerLimit")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawLowerLimit", 0), __LINE__);
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawUpperLimit")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawUpperLimit", 100), __LINE__);
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoTargetValue")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoTargetValue", 50), __LINE__);
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOISelector")) {
+                    checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "AutoFunctionAOISelector", "AOI1"), __LINE__);
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIUsageIntensity")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "AutoFunctionAOIUsageIntensity", 1), __LINE__);
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIUsageWhiteBalance")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "AutoFunctionAOIUsageWhiteBalance", 1), __LINE__);
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIWidth")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIWidth", WIDTH), __LINE__);
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIHeight")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIHeight", HEIGHT), __LINE__);
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIOffsetX")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIOffsetX", OFFSET_X), __LINE__);
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIOffsetY")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIOffsetY", OFFSET_Y), __LINE__);
+                }
+                if (PylonDeviceFeatureIsAvailable(handleForDevice, "GainAuto")) {
+                    checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "GainAuto", "Continuous"), __LINE__);
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "GainRaw")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "GainRaw", 0), __LINE__);
+                }
+            }
+
+            // Setup AutoExposure.
+            {
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoExposureTimeAbsLowerLimit")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoExposureTimeAbsLowerLimit", 26), __LINE__);
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoExposureTimeAbsUpperLimit")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoExposureTimeAbsUpperLimit", 50000), __LINE__);
+                }
+                if (PylonDeviceFeatureIsAvailable(handleForDevice, "ExposureAuto")) {
+                    checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "ExposureAuto", "Continuous"), __LINE__);
+                }
             }
 
             // Setup Acquisition parameters.
@@ -171,63 +227,6 @@ int32_t main(int32_t argc, char **argv) {
                 }
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "AcquisitionFrameRateAbs")) {
                     checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AcquisitionFrameRateAbs", FPS), __LINE__);
-                }
-            }
-
-            // Setup Auto functions.
-            {
-                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoTargetValue")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoTargetValue", 50), __LINE__);
-                }
-
-                if (PylonDeviceFeatureIsWritable(handleForDevice, "GrayValueAdjustmentDampingAbs")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "GrayValueAdjustmentDampingAbs", 0.683594), __LINE__);
-                }
-
-                if (PylonDeviceFeatureIsWritable(handleForDevice, "BalanceWhiteAdjustmentDampingAbs")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "BalanceWhiteAdjustmentDampingAbs", 0.976562), __LINE__);
-                }
-
-                //if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawLowerLimit")) {
-                //    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawLowerLimit", 0), __LINE__);
-                //}
-                //if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawUpperLimit")) {
-                //    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawUpperLimit", 100), __LINE__);
-                //}
-
-                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoExposureTimeAbsLowerLimit")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoExposureTimeAbsLowerLimit", 26), __LINE__);
-                }
-                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoExposureTimeAbsUpperLimit")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoExposureTimeAbsUpperLimit", 50000), __LINE__);
-                }
-
-                if (PylonDeviceFeatureIsAvailable(handleForDevice, "AutoFunctionProfile")) {
-                    checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "AutoFunctionProfile", "GainMinimum"), __LINE__);
-                }
-
-                {
-                    if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOISelector")) {
-                        checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "AutoFunctionAOISelector", "AOI1"), __LINE__);
-                    }
-                    if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIWidth")) {
-                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIWidth", WIDTH), __LINE__);
-                    }
-                    if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIHeight")) {
-                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIHeight", HEIGHT), __LINE__);
-                    }
-                    if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIOffsetX")) {
-                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIOffsetX", OFFSET_X), __LINE__);
-                    }
-                    if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIOffsetY")) {
-                        checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIOffsetY", OFFSET_Y), __LINE__);
-                    }
-                    //if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIUsageIntensity")) {
-                    //    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIUsageIntensity", 1), __LINE__);
-                    //}
-                    //if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoFunctionAOIUsageWhiteBalance")) {
-                    //    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoFunctionAOIUsageWhiteBalance", 1), __LINE__);
-                    //}
                 }
             }
 
