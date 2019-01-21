@@ -150,19 +150,6 @@ int32_t main(int32_t argc, char **argv) {
 
             // Enable PTP for the current camera.
             checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "GevIEEE1588", 1), __LINE__);
-            // Wait for 1min to get PTP synchronized.
-            {
-                using namespace std::literals::chrono_literals;
-                int8_t sixtySeconds{60};
-                std::clog << "[opendlv-device-camera-pylon]: Waiting for 60s for PTP synchronization: ";
-                do {
-                    std::this_thread::sleep_for(5s);
-                    std::clog << ".....";
-                    std::clog.flush();
-                    sixtySeconds -= 5;
-                } while (sixtySeconds >= 0);
-                std::clog << std::endl;
-            }
 
             // Setup pixel format.
             if (PylonDeviceFeatureIsAvailable(handleForDevice, "EnumEntry_PixelFormat_YUV422_YUYV_Packed")) {
@@ -189,12 +176,12 @@ int32_t main(int32_t argc, char **argv) {
 
             // Setup AutoGain.
             {
-                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawLowerLimit")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawLowerLimit", 0), __LINE__);
-                }
-                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawUpperLimit")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawUpperLimit", 100), __LINE__);
-                }
+//                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawLowerLimit")) {
+//                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawLowerLimit", 0), __LINE__);
+//                }
+//                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawUpperLimit")) {
+//                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawUpperLimit", 100), __LINE__);
+//                }
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoTargetValue")) {
                     checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoTargetValue", 50), __LINE__);
                 }
@@ -323,7 +310,6 @@ int32_t main(int32_t argc, char **argv) {
             }
 
             // Determine timebase.
-            int64_t absoluteCameraTimebaseInMicroseconds{0};
             {
                 struct timeval epochTime{};
                 {
@@ -334,10 +320,8 @@ int32_t main(int32_t argc, char **argv) {
                 int64_t cameraTimeStamp{0};
                 checkForErrorAndExitWhenError(PylonDeviceGetIntegerFeature(handleForDevice, "GevTimestampValue", &cameraTimeStamp), __LINE__);
 
-                absoluteCameraTimebaseInMicroseconds = static_cast<int64_t>(epochTime.tv_sec) * static_cast<int64_t>(1000 * 1000) + static_cast<int64_t>(epochTime.tv_usec);
-                absoluteCameraTimebaseInMicroseconds -= cameraTimeStamp/static_cast<int64_t>(1000);
                 if (VERBOSE) {
-                    std::clog << "[opendlv-device-camera-pylon]: Camera time base in microseconds: " << cameraTimeStamp << ", mapped to local time: " << absoluteCameraTimebaseInMicroseconds << std::endl;
+                    std::clog << "[opendlv-device-camera-pylon]: Camera time base in microseconds: " << cameraTimeStamp << "." << std::endl;
                 }
             }
 
@@ -364,16 +348,16 @@ int32_t main(int32_t argc, char **argv) {
                 PylonGrabResult_t grabResult{};
                 _Bool bufferReady{false};
                 GENAPIC_RESULT res = PylonDeviceGrabSingleFrame(handleForDevice, 0, imageBuffer, sizeOfPayload, &grabResult, &bufferReady, 500);
-                cluon::data::TimeStamp n = cluon::time::now();
+                cluon::data::TimeStamp nowOnHost = cluon::time::now();
                 if ( (GENAPI_E_OK == res) && !bufferReady ) {
                     std::cerr << "[opendlv-device-camera-pylon]: Timeout while grabbing frame." << std::endl;
                 }
                 checkForErrorAndExitWhenError(res, __LINE__);
 
                 // TODO: Check grabResult.Status == Grabbed / !Failed (compile error?)
-                int64_t timeStampInMicroseconds = absoluteCameraTimebaseInMicroseconds + (grabResult.TimeStamp/static_cast<int64_t>(1000));
+                int64_t timeStampInMicroseconds = (static_cast<int64_t>(grabResult.TimeStamp)/static_cast<int64_t>(1000));
                 if (VERBOSE) {
-                    std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us: host is " << cluon::time::toMicroseconds(n) << "us, delta: " << cluon::time::deltaInMicroseconds(cluon::time::fromMicroseconds(timeStampInMicroseconds), n) << "." << std::endl;
+                    std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us: host is " << cluon::time::toMicroseconds(nowOnHost) << " us, delta: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << "." << std::endl;
                 }
                 cluon::data::TimeStamp ts{cluon::time::fromMicroseconds(timeStampInMicroseconds)};
 
