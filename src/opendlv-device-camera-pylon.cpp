@@ -176,12 +176,6 @@ int32_t main(int32_t argc, char **argv) {
 
             // Setup AutoGain.
             {
-//                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawLowerLimit")) {
-//                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawLowerLimit", 0), __LINE__);
-//                }
-//                if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoGainRawUpperLimit")) {
-//                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoGainRawUpperLimit", 100), __LINE__);
-//                }
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoTargetValue")) {
                     checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "AutoTargetValue", 50), __LINE__);
                 }
@@ -309,22 +303,6 @@ int32_t main(int32_t argc, char **argv) {
                 std::exit(1);
             }
 
-            // Determine timebase.
-            {
-                struct timeval epochTime{};
-                {
-                    gettimeofday(&epochTime, nullptr);
-                    checkForErrorAndExitWhenError(PylonDeviceExecuteCommandFeature(handleForDevice, "GevTimestampControlLatch"), __LINE__);
-                }
-
-                int64_t cameraTimeStamp{0};
-                checkForErrorAndExitWhenError(PylonDeviceGetIntegerFeature(handleForDevice, "GevTimestampValue", &cameraTimeStamp), __LINE__);
-
-                if (VERBOSE) {
-                    std::clog << "[opendlv-device-camera-pylon]: Camera time base in microseconds: " << cameraTimeStamp << "." << std::endl;
-                }
-            }
-
             // Accessing the low-level X11 data display.
             Display* display{nullptr};
             Visual* visual{nullptr};
@@ -357,7 +335,7 @@ int32_t main(int32_t argc, char **argv) {
                 // TODO: Check grabResult.Status == Grabbed / !Failed (compile error?)
                 int64_t timeStampInMicroseconds = (static_cast<int64_t>(grabResult.TimeStamp)/static_cast<int64_t>(1000));
                 if (VERBOSE) {
-                    std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us: host is " << cluon::time::toMicroseconds(nowOnHost) << " us, delta: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << "." << std::endl;
+                    std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us (delta to host: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << " us)." << std::endl;
                 }
                 cluon::data::TimeStamp ts{cluon::time::fromMicroseconds(timeStampInMicroseconds)};
 
