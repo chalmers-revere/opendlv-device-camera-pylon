@@ -219,6 +219,11 @@ int32_t main(int32_t argc, char **argv) {
                 if (PylonDeviceFeatureIsAvailable(handleForDevice, "ExposureAuto")) {
                     checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "ExposureAuto", "Continuous"), __LINE__);
                 }
+                if (PylonDeviceFeatureIsReadable(handleForDevice, "ExposureTimeAbs")) {
+                    double exposureTimeAbs{0};
+                    checkForErrorAndExitWhenError(PylonDeviceGetFloatFeature(handleForDevice, "ExposureTimeAbs", &exposureTimeAbs), __LINE__);
+                    std::clog << "[opendlv-device-camera-pylon]: ExposureTimeAbs = " << exposureTimeAbs << std::endl;
+                }
             }
 
             // Setup Acquisition parameters.
