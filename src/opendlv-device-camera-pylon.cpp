@@ -45,6 +45,8 @@ int32_t main(int32_t argc, char **argv) {
         std::cerr << "         --offsetX:    X for desired ROI (default: 0)" << std::endl;
         std::cerr << "         --offsetY:    Y for desired ROI (default: 0)" << std::endl;
         std::cerr << "         --packetsize: if supported by the adapter (eg., jumbo frames), use this packetsize (default: 1500)" << std::endl;
+        std::cerr << "         --autoexposuretimeabslowerlimit: default: 26" << std::endl;
+        std::cerr << "         --autoexposuretimeabsupperlimit: default: 50000" << std::endl;
         std::cerr << "         --fps:        desired acquisition frame rate (depends on bandwidth)" << std::endl;
         std::cerr << "         --verbose:    display captured image" << std::endl;
         std::cerr << "Example: " << argv[0] << " --camera=0 --width=640 --height=480 --verbose" << std::endl;
@@ -57,6 +59,8 @@ int32_t main(int32_t argc, char **argv) {
         const uint32_t OFFSET_X{static_cast<uint32_t>((commandlineArguments.count("offsetX") != 0) ?std::stoi(commandlineArguments["offsetX"]) : 0)};
         const uint32_t OFFSET_Y{static_cast<uint32_t>((commandlineArguments.count("offsetY") != 0) ?std::stoi(commandlineArguments["offsetY"]) : 0)};
         const uint32_t PACKET_SIZE{static_cast<uint32_t>((commandlineArguments.count("packetsize") != 0) ?std::stoi(commandlineArguments["packetsize"]) : 1500)};
+        const uint32_t AUTOEXPOSURETIMEABSLOWERLIMIT{static_cast<uint32_t>((commandlineArguments.count("autoexposuretimeabslowerlimit") != 0) ? std::stoi(commandlineArguments["autoexposuretimeabslowerlimit"]) : 26)};
+        const uint32_t AUTOEXPOSURETIMEABSUPPERLIMIT{static_cast<uint32_t>((commandlineArguments.count("autoexposuretimeabsupperlimit") != 0) ? std::stoi(commandlineArguments["autoexposuretimeabsupperlimit"]) : 50000)};
         const float FPS{static_cast<float>((commandlineArguments.count("fps") != 0) ?std::stof(commandlineArguments["fps"]) : 17)};
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
 
@@ -211,18 +215,13 @@ int32_t main(int32_t argc, char **argv) {
             // Setup AutoExposure.
             {
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoExposureTimeAbsLowerLimit")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoExposureTimeAbsLowerLimit", 26), __LINE__);
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoExposureTimeAbsLowerLimit", AUTOEXPOSURETIMEABSLOWERLIMIT), __LINE__);
                 }
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "AutoExposureTimeAbsUpperLimit")) {
-                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoExposureTimeAbsUpperLimit", 50000), __LINE__);
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "AutoExposureTimeAbsUpperLimit", AUTOEXPOSURETIMEABSUPPERLIMIT), __LINE__);
                 }
                 if (PylonDeviceFeatureIsAvailable(handleForDevice, "ExposureAuto")) {
                     checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "ExposureAuto", "Continuous"), __LINE__);
-                }
-                if (PylonDeviceFeatureIsReadable(handleForDevice, "ExposureTimeAbs")) {
-                    double exposureTimeAbs{0};
-                    checkForErrorAndExitWhenError(PylonDeviceGetFloatFeature(handleForDevice, "ExposureTimeAbs", &exposureTimeAbs), __LINE__);
-                    std::clog << "[opendlv-device-camera-pylon]: ExposureTimeAbs = " << exposureTimeAbs << std::endl;
                 }
             }
 
@@ -343,6 +342,12 @@ int32_t main(int32_t argc, char **argv) {
                     std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us (delta to host: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << " us)." << std::endl;
                 }
                 cluon::data::TimeStamp ts{cluon::time::fromMicroseconds(timeStampInMicroseconds)};
+
+                if (PylonDeviceFeatureIsReadable(handleForDevice, "ExposureTimeAbs")) {
+                    double exposureTimeAbs{0};
+                    checkForErrorAndExitWhenError(PylonDeviceGetFloatFeature(handleForDevice, "ExposureTimeAbs", &exposureTimeAbs), __LINE__);
+                    std::clog << "[opendlv-device-camera-pylon]: ExposureTimeAbs = " << exposureTimeAbs << std::endl;
+                }
 
                 sharedMemoryI420->lock();
                 sharedMemoryI420->setTimeStamp(ts);
