@@ -40,7 +40,7 @@ version: '2' # Must be present exactly once at the beginning of the docker-compo
 services:    # Must be present exactly once at the beginning of the docker-compose.yml file
     device-camera-pylon-amd64:
         build:
-            context: https://github.com/chalmers-revere/opendlv-device-camera-pylon.git
+            context: https://github.com/chalmers-revere/opendlv-device-camera-pylon.git#v0.0.2
             dockerfile: Dockerfile.amd64
         restart: on-failure
         ipc: "host"
@@ -59,7 +59,9 @@ The parameters to the application are:
 * `--offsetX`: X for desired ROI (default: 0)
 * `--offsetY`: Y for desired ROI (default: 0)
 * `--packetsize`: If supported by the adapter (eg., jumbo frames), use this packetsize (default: 1500)
-* `--verbose:`: Display captured image
+* `--verbose`: Display captured imageA
+* `--autoexposuretimeabslowerlimit`: Set auto exposure time lower limit; default: 26
+* `--autoexposuretimeabsupperlimit`: Set auto exposure time upper limit; default: 50000
 
 
 ## License
