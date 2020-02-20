@@ -40,7 +40,7 @@ version: '2' # Must be present exactly once at the beginning of the docker-compo
 services:    # Must be present exactly once at the beginning of the docker-compose.yml file
     device-camera-pylon-amd64:
         build:
-            context: https://github.com/chalmers-revere/opendlv-device-camera-pylon.git#v0.0.2
+            context: https://github.com/chalmers-revere/opendlv-device-camera-pylon.git#v0.0.3
             dockerfile: Dockerfile.amd64
         restart: on-failure
         ipc: "host"
@@ -54,6 +54,7 @@ The parameters to the application are:
 * `--camera=ID`: Numerical identifier for pylon-compatible camera to be used
 * `--name.i420=XYZ`: Name of the shared memory for the I420 formatted image; when omitted, `cam0.i420` is chosen
 * `--name.argb=XYZ`: Name of the shared memory for the ARGB formatted image; when omitted, `cam0.argb` is chosen
+* `--skip.argb`: Don't decode into ARGB
 * `--width=W`: Desired width of a frame
 * `--height=H`: Desired height of a frame
 * `--offsetX`: X for desired ROI (default: 0)

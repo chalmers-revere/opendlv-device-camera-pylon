@@ -40,6 +40,7 @@ int32_t main(int32_t argc, char **argv) {
         std::cerr << "         --camera:     numerical identifier for pylon-compatible camera to be used" << std::endl;
         std::cerr << "         --name.i420:  name of the shared memory for the I420 formatted image; when omitted, 'video0.i420' is chosen" << std::endl;
         std::cerr << "         --name.argb:  name of the shared memory for the I420 formatted image; when omitted, 'video0.argb' is chosen" << std::endl;
+        std::cerr << "         --skip.argb:  don't decode frame into argb format; default: false" << std::endl;
         std::cerr << "         --width:      desired width of a frame" << std::endl;
         std::cerr << "         --height:     desired height of a frame" << std::endl;
         std::cerr << "         --offsetX:    X for desired ROI (default: 0)" << std::endl;
@@ -63,6 +64,7 @@ int32_t main(int32_t argc, char **argv) {
         const uint32_t AUTOEXPOSURETIMEABSUPPERLIMIT{static_cast<uint32_t>((commandlineArguments.count("autoexposuretimeabsupperlimit") != 0) ? std::stoi(commandlineArguments["autoexposuretimeabsupperlimit"]) : 50000)};
         const float FPS{static_cast<float>((commandlineArguments.count("fps") != 0) ?std::stof(commandlineArguments["fps"]) : 17)};
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
+        const bool SKIP_ARGB{commandlineArguments.count("skip.argb") != 0};
 
         // Set up the names for the shared memory areas.
         std::string NAME_I420{"video0.i420"};
@@ -360,23 +362,26 @@ int32_t main(int32_t argc, char **argv) {
                 }
                 sharedMemoryI420->unlock();
 
-                sharedMemoryARGB->lock();
-                sharedMemoryARGB->setTimeStamp(ts);
-                {
-                    libyuv::I420ToARGB(reinterpret_cast<uint8_t*>(sharedMemoryI420->data()), WIDTH,
-                                       reinterpret_cast<uint8_t*>(sharedMemoryI420->data()+(WIDTH * HEIGHT)), WIDTH/2,
-                                       reinterpret_cast<uint8_t*>(sharedMemoryI420->data()+(WIDTH * HEIGHT + ((WIDTH * HEIGHT) >> 2))), WIDTH/2,
-                                       reinterpret_cast<uint8_t*>(sharedMemoryARGB->data()), WIDTH * 4, WIDTH, HEIGHT);
+		if (!SKIP_ARGB) {
+                    sharedMemoryARGB->lock();
+                    sharedMemoryARGB->setTimeStamp(ts);
+                    {
+                        libyuv::I420ToARGB(reinterpret_cast<uint8_t*>(sharedMemoryI420->data()), WIDTH,
+                                           reinterpret_cast<uint8_t*>(sharedMemoryI420->data()+(WIDTH * HEIGHT)), WIDTH/2,
+                                           reinterpret_cast<uint8_t*>(sharedMemoryI420->data()+(WIDTH * HEIGHT + ((WIDTH * HEIGHT) >> 2))), WIDTH/2,
+                                           reinterpret_cast<uint8_t*>(sharedMemoryARGB->data()), WIDTH * 4, WIDTH, HEIGHT);
 
-                    if (VERBOSE) {
-                        XPutImage(display, window, DefaultGC(display, 0), ximage, 0, 0, 0, 0, WIDTH, HEIGHT);
+                        if (VERBOSE) {
+                            XPutImage(display, window, DefaultGC(display, 0), ximage, 0, 0, 0, 0, WIDTH, HEIGHT);
+			}
                     }
+                    sharedMemoryARGB->unlock();
+                    // Wake up any pending processes.
+                    sharedMemoryARGB->notifyAll();
                 }
-                sharedMemoryARGB->unlock();
 
                 // Wake up any pending processes.
                 sharedMemoryI420->notifyAll();
-                sharedMemoryARGB->notifyAll();
             }
 
             // Release any resources.
