@@ -50,6 +50,7 @@ int32_t main(int32_t argc, char **argv) {
         std::cerr << "         --autoexposuretimeabsupperlimit: default: 50000" << std::endl;
         std::cerr << "         --fps:        desired acquisition frame rate (depends on bandwidth)" << std::endl;
         std::cerr << "         --verbose:    display captured image" << std::endl;
+        std::cerr << "         --info:       show grabbing information " << std::endl;
         std::cerr << "Example: " << argv[0] << " --camera=0 --width=640 --height=480 --verbose" << std::endl;
         retCode = 1;
     }
@@ -64,6 +65,7 @@ int32_t main(int32_t argc, char **argv) {
         const uint32_t AUTOEXPOSURETIMEABSUPPERLIMIT{static_cast<uint32_t>((commandlineArguments.count("autoexposuretimeabsupperlimit") != 0) ? std::stoi(commandlineArguments["autoexposuretimeabsupperlimit"]) : 50000)};
         const float FPS{static_cast<float>((commandlineArguments.count("fps") != 0) ?std::stof(commandlineArguments["fps"]) : 17)};
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
+        const bool INFO{commandlineArguments.count("info") != 0};
         const bool SKIP_ARGB{commandlineArguments.count("skip.argb") != 0};
 
         // Set up the names for the shared memory areas.
@@ -340,15 +342,17 @@ int32_t main(int32_t argc, char **argv) {
 
                 // TODO: Check grabResult.Status == Grabbed / !Failed (compile error?)
                 int64_t timeStampInMicroseconds = (static_cast<int64_t>(grabResult.TimeStamp)/static_cast<int64_t>(1000));
-                if (VERBOSE) {
+                if (INFO) {
                     std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us (delta to host: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << " us)." << std::endl;
                 }
                 cluon::data::TimeStamp ts{cluon::time::fromMicroseconds(timeStampInMicroseconds)};
 
-                if (PylonDeviceFeatureIsReadable(handleForDevice, "ExposureTimeAbs")) {
-                    double exposureTimeAbs{0};
-                    checkForErrorAndExitWhenError(PylonDeviceGetFloatFeature(handleForDevice, "ExposureTimeAbs", &exposureTimeAbs), __LINE__);
-                    std::clog << "[opendlv-device-camera-pylon]: ExposureTimeAbs = " << exposureTimeAbs << std::endl;
+                if (INFO) {
+                    if (PylonDeviceFeatureIsReadable(handleForDevice, "ExposureTimeAbs")) {
+                        double exposureTimeAbs{0};
+                        checkForErrorAndExitWhenError(PylonDeviceGetFloatFeature(handleForDevice, "ExposureTimeAbs", &exposureTimeAbs), __LINE__);
+                        std::clog << "[opendlv-device-camera-pylon]: ExposureTimeAbs = " << exposureTimeAbs << std::endl;
+                    }
                 }
 
                 sharedMemoryI420->lock();
