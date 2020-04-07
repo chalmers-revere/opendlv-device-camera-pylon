@@ -158,6 +158,22 @@ int32_t main(int32_t argc, char **argv) {
 
             // Enable PTP for the current camera.
             checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "GevIEEE1588", 1), __LINE__);
+            {
+                // Synchronized capturing.
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "SyncFreeRunTimerTriggerRateAbs")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetFloatFeature(handleForDevice, "SyncFreeRunTimerTriggerRateAbs", FPS), __LINE__);
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "SyncFreeRunTimerStartTimeHigh")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "SyncFreeRunTimerStartTimeHigh", 0), __LINE__);
+                }
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "SyncFreeRunTimerStartTimeLow")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetIntegerFeature(handleForDevice, "SyncFreeRunTimerStartTimeLow", 0), __LINE__);
+                }
+                checkForErrorAndExitWhenError(PylonDeviceExecuteCommandFeature(handleForDevice, "SyncFreeRunTimerUpdate"), __LINE__);
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "SyncFreeRunTimerEnable")) {
+                    checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "SyncFreeRunTimerEnable", 1), __LINE__);
+                }
+            }
 
             // Setup pixel format.
             if (PylonDeviceFeatureIsAvailable(handleForDevice, "EnumEntry_PixelFormat_YUV422_YUYV_Packed")) {
@@ -231,6 +247,9 @@ int32_t main(int32_t argc, char **argv) {
 
             // Setup Acquisition parameters.
             {
+                if (PylonDeviceFeatureIsWritable(handleForDevice, "AcquisitionMode")) {
+                    checkForErrorAndExitWhenError(PylonDeviceFeatureFromString(handleForDevice, "AcquisitionMode", "Continuous"), __LINE__);
+                }
                 if (PylonDeviceFeatureIsWritable(handleForDevice, "AcquisitionFrameRateEnable")) {
                     checkForErrorAndExitWhenError(PylonDeviceSetBooleanFeature(handleForDevice, "AcquisitionFrameRateEnable", 1), __LINE__);
                 }
