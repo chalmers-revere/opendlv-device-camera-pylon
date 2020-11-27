@@ -123,20 +123,23 @@ int32_t main(int32_t argc, char **argv) {
 
             try {
                 IPylonDevice *pDevice{nullptr};
-                CTlFactory& TlFactory = CTlFactory::GetInstance();
-                DeviceInfoList_t lstDevices;
-                TlFactory.EnumerateDevices(lstDevices);
-                if (!lstDevices.empty()) {
+                {
+                  // Find specified camera.
+                  CTlFactory& TlFactory = CTlFactory::GetInstance();
+                  DeviceInfoList_t lstDevices;
+                  TlFactory.EnumerateDevices(lstDevices);
+                  if (!lstDevices.empty()) {
                     uint8_t cameraCounter{0};
                     for(DeviceInfoList_t::const_iterator it = lstDevices.begin(); it != lstDevices.end(); it++, cameraCounter++) {
-                        std::clog << "[opendlv-device-camera-pylon]: " << it->GetModelName() << " (" << it->GetSerialNumber() << ") at " << it->GetIpAddress() << std::endl;
-                        std::stringstream sstr;
-                        sstr << it->GetSerialNumber();
-                        const std::string str{sstr.str()};
-                        if (str.find(CAMERA) != std::string::npos) {
-                            pDevice = TlFactory.CreateDevice(lstDevices[cameraCounter]);
-                        }
+                      std::clog << "[opendlv-device-camera-pylon]: " << it->GetModelName() << " (" << it->GetSerialNumber() << ") at " << it->GetIpAddress() << std::endl;
+                      std::stringstream sstr;
+                      sstr << it->GetSerialNumber();
+                      const std::string str{sstr.str()};
+                      if (str.find(CAMERA) != std::string::npos) {
+                        pDevice = TlFactory.CreateDevice(lstDevices[cameraCounter]);
+                      }
                     }
+                  }
                 }
 
                 if (pDevice == nullptr) {
@@ -144,37 +147,73 @@ int32_t main(int32_t argc, char **argv) {
                     return -1;
                 }
 
-								CBaslerUniversalInstantCamera camera(pDevice);
+                CBaslerUniversalInstantCamera camera(pDevice);
                 std::clog << "[opendlv-device-camera-pylon]: Using " << camera.GetDeviceInfo().GetModelName() << " (" << camera.GetDeviceInfo().GetSerialNumber() << ") at " << camera.GetDeviceInfo().GetIpAddress() << std::endl;
 
                 // Open the camera for accessing the parameters.
                 camera.Open();
+                // Replace any existing configuration.
+                camera.RegisterConfiguration( new CAcquireContinuousConfiguration, RegistrationMode_ReplaceAll, Cleanup_Delete);
+
+                // Enable PTP for the current camera.
+                camera.GevIEEE1588 = true;
+
                 {
                   // Configuring YUV422_YUYV_Packed pixel format.
                   INodeMap& nodemap = camera.GetNodeMap();
-
-                  // Access the PixelFormat enumeration type node.
                   CEnumParameter pixelFormat(nodemap, "PixelFormat");
-                  // Remember the current pixel format.
-                  String_t oldPixelFormat = pixelFormat.GetValue();
-                  std::cout << "Old PixelFormat  : " << oldPixelFormat << std::endl;
-                  if (pixelFormat.CanSetValue("YUV422_YUYV_Packed"))
-                  {
-                     pixelFormat.SetValue("YUV422_YUYV_Packed");
-                     std::cout << "New PixelFormat  : " << pixelFormat.GetValue() << std::endl;
+                  if (pixelFormat.CanSetValue("YUV422_YUYV_Packed")) {
+                    pixelFormat.SetValue("YUV422_YUYV_Packed");
+                    std::cout << "[opendlv-device-camera-pylon]: PixelFormat: " << pixelFormat.GetValue() << std::endl;
                   }
-	              }
-							  // The parameter MaxNumBuffer can be used to control the count of buffers
-								// allocated for grabbing. The default value of this parameter is 10.
-								camera.MaxNumBuffer = 10;
+                }
 
-								// Start the grabbing of c_countOfImagesToGrab images.
-								// The camera device is parameterized with a default configuration which
-								// sets up free-running continuous acquisition.
-								camera.StartGrabbing();
+                camera.GrayValueAdjustmentDampingAbs = 0.683594;
+                camera.BalanceWhiteAdjustmentDampingAbs = 0.976562;
+                camera.AutoFunctionProfile = Basler_UniversalCameraParams::AutoFunctionProfile_GainMinimum;
 
-								// This smart pointer will receive the grab result data.
-								CGrabResultPtr ptrGrabResult;
+                // AutoGain:
+                camera.AutoTargetValue = 50;
+                camera.AutoFunctionAOISelector = Basler_UniversalCameraParams::AutoFunctionAOISelector_AOI1;
+                camera.AutoFunctionAOIUsageIntensity = 1;
+                camera.AutoFunctionAOIUsageWhiteBalance = 1;
+                camera.AutoFunctionAOIWidth = WIDTH;
+                camera.AutoFunctionAOIHeight = HEIGHT;
+                camera.AutoFunctionAOIOffsetX = OFFSET_X;
+                camera.AutoFunctionAOIOffsetY = OFFSET_Y;
+                camera.GainAuto = Basler_UniversalCameraParams::GainAuto_Continuous;
+
+                // AutoExposure:
+                camera.AutoExposureTimeAbsLowerLimit = AUTOEXPOSURETIMEABSLOWERLIMIT;
+                camera.AutoExposureTimeAbsUpperLimit = AUTOEXPOSURETIMEABSUPPERLIMIT;
+                camera.ExposureAuto = Basler_UniversalCameraParams::ExposureAuto_Continuous;
+
+                // AcquisitionMode:
+                camera.AcquisitionMode = Basler_UniversalCameraParams::AcquisitionMode_Continuous;
+
+                // TODO: FPS
+
+                //camera.TriggerSelector = Basler_UniversalCameraParams::TriggerSelector_AcquisitionStart;
+                //camera.TriggerSelector = Basler_UniversalCameraParams::TriggerSelector_FrameBurstStart;
+                camera.TriggerSelector = Basler_UniversalCameraParams::TriggerSelector_FrameStart;
+                camera.TriggerMode = Basler_UniversalCameraParams::TriggerMode_Off;
+
+                camera.Width = WIDTH;
+                camera.Height = HEIGHT;
+                camera.OffsetX = OFFSET_X;
+                camera.OffsetY = OFFSET_Y;
+
+                // The parameter MaxNumBuffer can be used to control the count of buffers
+                // allocated for grabbing. The default value of this parameter is 10.
+                camera.MaxNumBuffer = 10;
+
+                // Start the grabbing of c_countOfImagesToGrab images.
+                // The camera device is parameterized with a default configuration which
+                // sets up free-running continuous acquisition.
+                camera.StartGrabbing();
+
+                // This smart pointer will receive the grab result data.
+                CGrabResultPtr ptrGrabResult;
 
                 // Frame grabbing loop.
                 const uint32_t timeoutInMS{500};
@@ -187,13 +226,13 @@ int32_t main(int32_t argc, char **argv) {
                     //cluon::data::TimeStamp ts{cluon::time::fromMicroseconds(timeStampInMicroseconds)};
                     cluon::data::TimeStamp ts{cluon::time::now()};
 
-										// Wait for an image and then retrieve it. A timeout of 5000 ms is used.
-										camera.RetrieveResult(timeoutInMS, ptrGrabResult, TimeoutHandling_ThrowException);
+                    // Wait for an image and then retrieve it. A timeout of 5000 ms is used.
+                    camera.RetrieveResult(timeoutInMS, ptrGrabResult, TimeoutHandling_ThrowException);
 
-										// Image grabbed successfully?
-										if (ptrGrabResult->GrabSucceeded()) {
-												const uint8_t *imageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
-												std::cout << "Gray value of first pixel: " << (uint32_t) imageBuffer[0] << std::endl << std::endl;
+                    // Image grabbed successfully?
+                    if (ptrGrabResult->GrabSucceeded()) {
+                        const uint8_t *imageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
+                        std::cout << "Gray value of first pixel: " << (uint32_t) imageBuffer[0] << std::endl << std::endl;
 
                         sharedMemoryI420->lock();
                         sharedMemoryI420->setTimeStamp(ts);
@@ -226,16 +265,16 @@ int32_t main(int32_t argc, char **argv) {
 
                         // Wake up any pending processes.
                         sharedMemoryI420->notifyAll();
-										}
-										else {
-												std::cout << "Error: " << ptrGrabResult->GetErrorCode() << " " << ptrGrabResult->GetErrorDescription() << std::endl;
-										}
+                    }
+                    else {
+                        std::cout << "Error: " << ptrGrabResult->GetErrorCode() << " " << ptrGrabResult->GetErrorDescription() << std::endl;
+                    }
                 }
             }
-						catch (const GenericException &e) {
+            catch (const GenericException &e) {
                 std::cerr << "[opendlv-device-camera-pylon]: Exception: '" << e.GetDescription() << "'." << std::endl;
-								return -1;
-						}
+                return -1;
+            }
 
             // Release any resources.
         }
