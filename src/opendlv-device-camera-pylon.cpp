@@ -29,6 +29,8 @@
 #include <iostream>
 #include <memory>
 
+using namespace Pylon;
+
 int32_t main(int32_t argc, char **argv) {
     int32_t retCode{0};
     auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
@@ -114,51 +116,95 @@ int32_t main(int32_t argc, char **argv) {
                 XMapWindow(display, window);
             }
 
-            // Frame grabbing loop.
-            while (!cluon::TerminateHandler::instance().isTerminated.load()) {
-                // TODO: Check grabResult.Status == Grabbed / !Failed (compile error?)
-                //int64_t timeStampInMicroseconds = (static_cast<int64_t>(grabResult.TimeStamp)/static_cast<int64_t>(1000));
-                //if (INFO) {
-                //    std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us (delta to host: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << " us); sizeOfPayload: " << sizeOfPayload << std::endl;
-                //}
-                //cluon::data::TimeStamp ts{cluon::time::fromMicroseconds(timeStampInMicroseconds)};
-                cluon::data::TimeStamp ts{cluon::time::now()};
+            PylonInitialize();
 
-                uint8_t *imageBuffer;
-                sharedMemoryI420->lock();
-                sharedMemoryI420->setTimeStamp(ts);
-                {
-                    libyuv::YUY2ToI420(imageBuffer, WIDTH * 2 /* 2*WIDTH for YUYV 422*/,
-                                       reinterpret_cast<uint8_t*>(sharedMemoryI420->data()), WIDTH,
-                                       reinterpret_cast<uint8_t*>(sharedMemoryI420->data()+(WIDTH * HEIGHT)), WIDTH/2,
-                                       reinterpret_cast<uint8_t*>(sharedMemoryI420->data()+(WIDTH * HEIGHT + ((WIDTH * HEIGHT) >> 2))), WIDTH/2,
-                                       WIDTH, HEIGHT);
-                }
-                sharedMemoryI420->unlock();
+            try {
+								// Create an instant camera object with the camera device found first.
+								CInstantCamera camera(CTlFactory::GetInstance().CreateFirstDevice());
 
-                if (!SKIP_ARGB) {
-                    sharedMemoryARGB->lock();
-                    sharedMemoryARGB->setTimeStamp(ts);
+								// Print the model name of the camera.
+								std::cout << "Using device " << camera.GetDeviceInfo().GetModelName() << std::endl;
+
+								// The parameter MaxNumBuffer can be used to control the count of buffers
+								// allocated for grabbing. The default value of this parameter is 10.
+								camera.MaxNumBuffer = 10;
+
+								// Start the grabbing of c_countOfImagesToGrab images.
+								// The camera device is parameterized with a default configuration which
+								// sets up free-running continuous acquisition.
+								camera.StartGrabbing(10);
+
+								// This smart pointer will receive the grab result data.
+								CGrabResultPtr ptrGrabResult;
+
+                // Frame grabbing loop.
+                while (!cluon::TerminateHandler::instance().isTerminated.load() &&
+                       camera.IsGrabbing()) {
+                    // TODO: Check grabResult.Status == Grabbed / !Failed (compile error?)
+                    //int64_t timeStampInMicroseconds = (static_cast<int64_t>(grabResult.TimeStamp)/static_cast<int64_t>(1000));
+                    //if (INFO) {
+                    //    std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us (delta to host: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << " us); sizeOfPayload: " << sizeOfPayload << std::endl;
+                    //}
+                    //cluon::data::TimeStamp ts{cluon::time::fromMicroseconds(timeStampInMicroseconds)};
+                    cluon::data::TimeStamp ts{cluon::time::now()};
+
+										// Wait for an image and then retrieve it. A timeout of 5000 ms is used.
+										camera.RetrieveResult( 5000, ptrGrabResult, TimeoutHandling_ThrowException);
+
+										// Image grabbed successfully?
+										if (ptrGrabResult->GrabSucceeded()) {
+												// Access the image data.
+												std::cout << "SizeX: " << ptrGrabResult->GetWidth() << std::endl;
+												std::cout << "SizeY: " << ptrGrabResult->GetHeight() << std::endl;
+												const uint8_t *pImageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
+												std::cout << "Gray value of first pixel: " << (uint32_t) pImageBuffer[0] << std::endl << std::endl;
+										}
+										else {
+												std::cout << "Error: " << ptrGrabResult->GetErrorCode() << " " << ptrGrabResult->GetErrorDescription() << std::endl;
+										}
+#ifdef ABC
+                    uint8_t *imageBuffer;
+                    sharedMemoryI420->lock();
+                    sharedMemoryI420->setTimeStamp(ts);
                     {
-                        libyuv::I420ToARGB(reinterpret_cast<uint8_t*>(sharedMemoryI420->data()), WIDTH,
+                        libyuv::YUY2ToI420(imageBuffer, WIDTH * 2 /* 2*WIDTH for YUYV 422*/,
+                                           reinterpret_cast<uint8_t*>(sharedMemoryI420->data()), WIDTH,
                                            reinterpret_cast<uint8_t*>(sharedMemoryI420->data()+(WIDTH * HEIGHT)), WIDTH/2,
                                            reinterpret_cast<uint8_t*>(sharedMemoryI420->data()+(WIDTH * HEIGHT + ((WIDTH * HEIGHT) >> 2))), WIDTH/2,
-                                           reinterpret_cast<uint8_t*>(sharedMemoryARGB->data()), WIDTH * 4, WIDTH, HEIGHT);
-
-                        if (VERBOSE) {
-                            XPutImage(display, window, DefaultGC(display, 0), ximage, 0, 0, 0, 0, WIDTH, HEIGHT);
-                        }
+                                           WIDTH, HEIGHT);
                     }
-                    sharedMemoryARGB->unlock();
-                    // Wake up any pending processes.
-                    sharedMemoryARGB->notifyAll();
-                }
+                    sharedMemoryI420->unlock();
 
-                // Wake up any pending processes.
-                sharedMemoryI420->notifyAll();
+                    if (!SKIP_ARGB) {
+                        sharedMemoryARGB->lock();
+                        sharedMemoryARGB->setTimeStamp(ts);
+                        {
+                            libyuv::I420ToARGB(reinterpret_cast<uint8_t*>(sharedMemoryI420->data()), WIDTH,
+                                               reinterpret_cast<uint8_t*>(sharedMemoryI420->data()+(WIDTH * HEIGHT)), WIDTH/2,
+                                               reinterpret_cast<uint8_t*>(sharedMemoryI420->data()+(WIDTH * HEIGHT + ((WIDTH * HEIGHT) >> 2))), WIDTH/2,
+                                               reinterpret_cast<uint8_t*>(sharedMemoryARGB->data()), WIDTH * 4, WIDTH, HEIGHT);
+
+                            if (VERBOSE) {
+                                XPutImage(display, window, DefaultGC(display, 0), ximage, 0, 0, 0, 0, WIDTH, HEIGHT);
+                            }
+                        }
+                        sharedMemoryARGB->unlock();
+                        // Wake up any pending processes.
+                        sharedMemoryARGB->notifyAll();
+                    }
+
+                    // Wake up any pending processes.
+                    sharedMemoryI420->notifyAll();
+#endif
+                }
             }
+						catch (const GenericException &e) {
+                std::cerr << "[opendlv-device-camera-pylon]: Exception: '" << e.GetDescription() << "'." << std::endl;
+								return -1;
+						}
 
             // Release any resources.
+            PylonTerminate();  
         }
         retCode = 0;
     }
