@@ -19,7 +19,7 @@ project(opendlv-device-camera-pylon)
 
 ################################################################################
 # Defining the relevant version of libcluon.
-set(CLUON_COMPLETE cluon-complete-v0.0.117.hpp)
+set(CLUON_COMPLETE cluon-complete-v0.0.136.hpp)
 
 ################################################################################
 # Set the search path for .cmake files.
@@ -72,9 +72,9 @@ if(UNIX)
     endif()
 endif()
 
-find_package(Libpylon5 REQUIRED)
-include_directories(SYSTEM ${PYLON5_INCLUDE_DIRS})
-set(LIBRARIES ${LIBRARIES} ${PYLON5_LIBRARIES})
+find_package(Libpylon6 REQUIRED)
+include_directories(SYSTEM ${PYLON6_INCLUDE_DIRS})
+set(LIBRARIES ${LIBRARIES} ${PYLON6_LIBRARIES})
 
 find_package(Libyuv REQUIRED)
 include_directories(SYSTEM ${YUV_INCLUDE_DIRS})
