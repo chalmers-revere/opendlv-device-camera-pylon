@@ -18,6 +18,7 @@
 #include "cluon-complete.hpp"
 
 #include <pylon/PylonIncludes.h>
+#include <pylon/BaslerUniversalInstantCamera.h>
 
 #include <sys/time.h>
 #include <libyuv.h>
@@ -32,6 +33,9 @@
 using namespace Pylon;
 
 int32_t main(int32_t argc, char **argv) {
+    // Automatic initialization and cleanup.
+    Pylon::PylonAutoInitTerm autoInitTerm;
+
     int32_t retCode{0};
     auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
     if ( (0 == commandlineArguments.count("camera")) ||
@@ -39,7 +43,7 @@ int32_t main(int32_t argc, char **argv) {
          (0 == commandlineArguments.count("height")) ) {
         std::cerr << argv[0] << " interfaces with a Pylon camera (given by the numerical identifier, e.g., 0) and provides the captured image in two shared memory areas: one in I420 format and one in ARGB format." << std::endl;
         std::cerr << "Usage:   " << argv[0] << " --camera=<identifier> --width=<width> --height=<height> [--name.i420=<unique name for the shared memory in I420 format>] [--name.argb=<unique name for the shared memory in ARGB format>] --width=W --height=H [--offsetX=X] [--offsetY=Y] [--packetsize=1500] [--fps=17] [--verbose]" << std::endl;
-        std::cerr << "         --camera:     numerical identifier for pylon-compatible camera to be used" << std::endl;
+        std::cerr << "         --camera:     serial number for Pylon-compatible camera to be used" << std::endl;
         std::cerr << "         --name.i420:  name of the shared memory for the I420 formatted image; when omitted, 'video0.i420' is chosen" << std::endl;
         std::cerr << "         --name.argb:  name of the shared memory for the I420 formatted image; when omitted, 'video0.argb' is chosen" << std::endl;
         std::cerr << "         --skip.argb:  don't decode frame into argb format; default: false" << std::endl;
@@ -58,7 +62,7 @@ int32_t main(int32_t argc, char **argv) {
         retCode = 1;
     }
     else {
-        const uint32_t CAMERA{static_cast<uint32_t>((commandlineArguments.count("camera") != 0) ?std::stoi(commandlineArguments["camera"]) : 0)};
+        const std::string CAMERA{commandlineArguments["camera"]};
         const uint32_t WIDTH{static_cast<uint32_t>(std::stoi(commandlineArguments["width"]))};
         const uint32_t HEIGHT{static_cast<uint32_t>(std::stoi(commandlineArguments["height"]))};
         const uint32_t OFFSET_X{static_cast<uint32_t>((commandlineArguments.count("offsetX") != 0) ?std::stoi(commandlineArguments["offsetX"]) : 0)};
@@ -116,14 +120,31 @@ int32_t main(int32_t argc, char **argv) {
                 XMapWindow(display, window);
             }
 
-            PylonInitialize();
-
             try {
-								// Create an instant camera object with the camera device found first.
-								CInstantCamera camera(CTlFactory::GetInstance().CreateFirstDevice());
+                IPylonDevice *pDevice{nullptr};
+                CTlFactory& TlFactory = CTlFactory::GetInstance();
+                DeviceInfoList_t lstDevices;
+                TlFactory.EnumerateDevices(lstDevices);
+                if (!lstDevices.empty()) {
+                    uint8_t cameraCounter{0};
+                    for(DeviceInfoList_t::const_iterator it = lstDevices.begin(); it != lstDevices.end(); it++, cameraCounter++) {
+                        std::clog << "[opendlv-device-camera-pylon]: " << it->GetModelName() << " (" << it->GetSerialNumber() << ") at " << it->GetIpAddress() << std::endl;
+                        std::stringstream sstr;
+                        sstr << it->GetSerialNumber();
+                        const std::string str{sstr.str()};
+                        if (str.find(CAMERA) != std::string::npos) {
+                            pDevice = TlFactory.CreateDevice(lstDevices[cameraCounter]);
+                        }
+                    }
+                }
 
-								// Print the model name of the camera.
-								std::cout << "Using device " << camera.GetDeviceInfo().GetModelName() << std::endl;
+                if (pDevice == nullptr) {
+                    std::cout << "[opendlv-device-camera-pylon] Failed to open camera." << std::endl;
+                    return -1;
+                }
+
+								CBaslerUniversalInstantCamera camera(pDevice);
+                std::clog << "[opendlv-device-camera-pylon]: Using " << camera.GetDeviceInfo().GetModelName() << " (" << camera.GetDeviceInfo().GetSerialNumber() << ") at " << camera.GetDeviceInfo().GetIpAddress() << std::endl;
 
 								// The parameter MaxNumBuffer can be used to control the count of buffers
 								// allocated for grabbing. The default value of this parameter is 10.
@@ -132,14 +153,16 @@ int32_t main(int32_t argc, char **argv) {
 								// Start the grabbing of c_countOfImagesToGrab images.
 								// The camera device is parameterized with a default configuration which
 								// sets up free-running continuous acquisition.
-								camera.StartGrabbing(10);
+								camera.StartGrabbing();
 
 								// This smart pointer will receive the grab result data.
 								CGrabResultPtr ptrGrabResult;
 
                 // Frame grabbing loop.
+                int cnt{0};
+                const uint32_t timeoutInMS{500};
                 while (!cluon::TerminateHandler::instance().isTerminated.load() &&
-                       camera.IsGrabbing()) {
+                       camera.IsGrabbing() && cnt++ < 10) {
                     // TODO: Check grabResult.Status == Grabbed / !Failed (compile error?)
                     //int64_t timeStampInMicroseconds = (static_cast<int64_t>(grabResult.TimeStamp)/static_cast<int64_t>(1000));
                     //if (INFO) {
@@ -149,7 +172,7 @@ int32_t main(int32_t argc, char **argv) {
                     cluon::data::TimeStamp ts{cluon::time::now()};
 
 										// Wait for an image and then retrieve it. A timeout of 5000 ms is used.
-										camera.RetrieveResult( 5000, ptrGrabResult, TimeoutHandling_ThrowException);
+										camera.RetrieveResult(timeoutInMS, ptrGrabResult, TimeoutHandling_ThrowException);
 
 										// Image grabbed successfully?
 										if (ptrGrabResult->GrabSucceeded()) {
@@ -204,7 +227,6 @@ int32_t main(int32_t argc, char **argv) {
 						}
 
             // Release any resources.
-            PylonTerminate();  
         }
         retCode = 0;
     }
