@@ -251,6 +251,7 @@ int32_t main(int32_t argc, char **argv) {
                     if (ptrGrabResult->GrabSucceeded()) {
                         cluon::data::TimeStamp nowOnHost = cluon::time::now();
                         int64_t timeStampInMicroseconds = (static_cast<int64_t>(ptrGrabResult->GetTimeStamp())/static_cast<int64_t>(1000));
+                        int64_t grabTimeStamp{timeStampInMicroseconds};
                         if (INFO) {
                             if (ptrGrabResult->ChunkTimestamp.IsReadable()) {
                                 timeStampInMicroseconds = (static_cast<int64_t>(ptrGrabResult->ChunkTimestamp.GetValue())/static_cast<int64_t>(1000));
@@ -260,7 +261,7 @@ int32_t main(int32_t argc, char **argv) {
                             if (ptrGrabResult->ChunkExposureTime.IsReadable()) {
                                 exposureTime = ptrGrabResult->ChunkExposureTime.GetValue();
                             }
-                            std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us (delta to host: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << " us); sizeOfPayload: " << ptrGrabResult->GetPayloadSize() << ", exposure time: " << exposureTime << std::endl;
+                            std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << "/" << grabTimeStamp << " us (delta to host: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << " us); sizeOfPayload: " << ptrGrabResult->GetPayloadSize() << ", exposure time: " << exposureTime << std::endl;
                         }
                         cluon::data::TimeStamp ts{cluon::time::fromMicroseconds(timeStampInMicroseconds)};
                         const uint8_t *imageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
