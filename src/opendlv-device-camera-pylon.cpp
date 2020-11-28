@@ -219,7 +219,7 @@ int32_t main(int32_t argc, char **argv) {
                 CGrabResultPtr ptrGrabResult;
 
                 // Frame grabbing loop.
-                const uint32_t timeoutInMS{500};
+                const uint32_t timeoutInMS{10000};
                 while (!cluon::TerminateHandler::instance().isTerminated.load() && camera.IsGrabbing()) {
                     // Wait for an image and then retrieve it. A timeout of 5000 ms is used.
                     camera.RetrieveResult(timeoutInMS, ptrGrabResult, TimeoutHandling_ThrowException);
