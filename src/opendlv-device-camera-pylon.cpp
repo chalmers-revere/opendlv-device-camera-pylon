@@ -229,7 +229,13 @@ int32_t main(int32_t argc, char **argv) {
                         cluon::data::TimeStamp nowOnHost = cluon::time::now();
                         int64_t timeStampInMicroseconds = (static_cast<int64_t>(ptrGrabResult->GetTimeStamp())/static_cast<int64_t>(1000));
                         if (INFO) {
-                            std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us (delta to host: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << " us); sizeOfPayload: " << ptrGrabResult->GetPayloadSize() << std::endl;
+                            double exposureTime{0};
+                            {
+                          //    INodeMap& nodemap = ptrGrabResult->GetChunkDataNodeMap();
+                          //    CEnumParameter exposureTimeVal(nodemap, "ChunkExposureTime");
+                          //    std::cout << exposureTimeVal.GetValue() << std::endl;
+                            }
+                            std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us (delta to host: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << " us); sizeOfPayload: " << ptrGrabResult->GetPayloadSize() << ", exposure time: " << exposureTime << std::endl;
                         }
                         cluon::data::TimeStamp ts{cluon::time::fromMicroseconds(timeStampInMicroseconds)};
                         const uint8_t *imageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
