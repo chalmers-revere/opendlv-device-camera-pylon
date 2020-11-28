@@ -251,7 +251,6 @@ int32_t main(int32_t argc, char **argv) {
                     if (ptrGrabResult->GrabSucceeded()) {
                         cluon::data::TimeStamp nowOnHost = cluon::time::now();
                         int64_t timeStampInMicroseconds = (static_cast<int64_t>(ptrGrabResult->GetTimeStamp())/static_cast<int64_t>(1000));
-                        std::cout << "ChunkData: " << ptrGrabResult->IsChunkDataAvailable() << std::endl;
                         if (INFO) {
                             if (ptrGrabResult->ChunkTimestamp.IsReadable()) {
                                 timeStampInMicroseconds = (static_cast<int64_t>(ptrGrabResult->ChunkTimestamp.GetValue())/static_cast<int64_t>(1000));
