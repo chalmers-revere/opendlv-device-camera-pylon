@@ -46,12 +46,12 @@ services:    # Must be present exactly once at the beginning of the docker-compo
         ipc: "host"
         volumes:
         - /tmp:/tmp
-        command: "--camera=0 --width=640 --height=480"
+        command: "--camera=22604270 --width=640 --height=480"
 ```
 
 The parameters to the application are:
 
-* `--camera=ID`: Numerical identifier for pylon-compatible camera to be used
+* `--camera=ID`: Serial number for pylon-compatible camera to be used
 * `--name.i420=XYZ`: Name of the shared memory for the I420 formatted image; when omitted, `cam0.i420` is chosen
 * `--name.argb=XYZ`: Name of the shared memory for the ARGB formatted image; when omitted, `cam0.argb` is chosen
 * `--skip.argb`: Don't decode into ARGB
@@ -61,6 +61,7 @@ The parameters to the application are:
 * `--offsetY`: Y for desired ROI (default: 0)
 * `--packetsize`: If supported by the adapter (eg., jumbo frames), use this packetsize (default: 1500)
 * `--verbose`: Display captured imageA
+* `--info`: Display information about capturing
 * `--autoexposuretimeabslowerlimit`: Set auto exposure time lower limit; default: 26
 * `--autoexposuretimeabsupperlimit`: Set auto exposure time upper limit; default: 50000
 

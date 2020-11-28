@@ -1,4 +1,4 @@
-# Copyright (C) 2018  Christian Berger
+# Copyright (C) 2020  Christian Berger
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Part to build opendlv-device-camera-pylon.
-FROM ubuntu:18.04 as builder
+FROM ubuntu:20.04 as builder
 MAINTAINER Christian Berger "christian.berger@gu.se"
 
 # Set the env variable DEBIAN_FRONTEND to noninteractive
@@ -36,12 +36,10 @@ RUN cd /tmp && \
     cd libyuv &&\
     make -f linux.mk libyuv.a && cp libyuv.a /usr/lib && cd include && cp -r * /usr/include
 RUN cd /tmp && \
-    wget https://www.baslerweb.com/media/downloads/software/pylon_software/pylon-5.1.0.12682-x86_64.tar.gz && \
-    tar xvzf pylon-5.1.0.12682-x86_64.tar.gz && \
-    cd pylon-5.1.0.12682-x86_64 && \
-    tar xvzf pylonSDK-5.1.0.12682-x86_64.tar.gz && \
-    mkdir -p /opt/pylon5 && cd pylon5 && \
-    mv * /opt/pylon5
+    wget https://www.baslerweb.com/media/downloads/software/pylon_software/pylon_6.1.1.19861_x86_64_setup.tar.gz && \
+    tar xvzf pylon_6.1.1.19861_x86_64_setup.tar.gz && \
+    mkdir -p /opt/pylon6 && \
+    tar xvzf pylon_6.1.1.19861_x86_64.tar.gz -C /opt/pylon6 
 ADD . /opt/sources
 WORKDIR /opt/sources
 RUN mkdir build && \
@@ -51,7 +49,7 @@ RUN mkdir build && \
 
 
 # Part to deploy opendlv-device-camera-pylon.
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 MAINTAINER Christian Berger "christian.berger@gu.se"
 
 RUN apt-get update -y && \
@@ -61,13 +59,13 @@ RUN apt-get update -y && \
         libx11-dev && \
     apt-get clean
 
-WORKDIR /opt/pylon5/lib64
-COPY --from=builder /opt/pylon5/lib64 .
+WORKDIR /opt/pylon6/lib
+COPY --from=builder /opt/pylon6/lib .
 
 WORKDIR /usr/bin
 COPY --from=builder /tmp/bin/opendlv-device-camera-pylon .
 
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/pylon5/lib64
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/pylon6/lib
 
 ENTRYPOINT ["/usr/bin/opendlv-device-camera-pylon"]
 
