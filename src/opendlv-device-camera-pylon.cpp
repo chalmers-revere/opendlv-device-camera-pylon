@@ -192,6 +192,8 @@ int32_t main(int32_t argc, char **argv) {
                 camera.AcquisitionMode = Basler_UniversalCameraParams::AcquisitionMode_Continuous;
 
                 // TODO: FPS
+                camera.AcquisitionFrameRateEnable = 1;
+                camera.AcquisitionFrameRateAbs = FPS;
 
                 //camera.TriggerSelector = Basler_UniversalCameraParams::TriggerSelector_AcquisitionStart;
                 //camera.TriggerSelector = Basler_UniversalCameraParams::TriggerSelector_FrameBurstStart;
