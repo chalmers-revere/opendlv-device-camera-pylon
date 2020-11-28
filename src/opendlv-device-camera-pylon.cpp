@@ -71,7 +71,6 @@ int32_t main(int32_t argc, char **argv) {
         const uint32_t PACKET_SIZE{static_cast<uint32_t>((commandlineArguments.count("packetsize") != 0) ?std::stoi(commandlineArguments["packetsize"]) : 1500)};
         const uint32_t AUTOEXPOSURETIMEABSLOWERLIMIT{static_cast<uint32_t>((commandlineArguments.count("autoexposuretimeabslowerlimit") != 0) ? std::stoi(commandlineArguments["autoexposuretimeabslowerlimit"]) : 26)};
         const uint32_t AUTOEXPOSURETIMEABSUPPERLIMIT{static_cast<uint32_t>((commandlineArguments.count("autoexposuretimeabsupperlimit") != 0) ? std::stoi(commandlineArguments["autoexposuretimeabsupperlimit"]) : 50000)};
-        const bool FPS_SET{commandlineArguments.count("fps") != 0};
         const float FPS{static_cast<float>((commandlineArguments.count("fps") != 0) ? std::stof(commandlineArguments["fps"]) : 17)};
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
         const bool SYNC{commandlineArguments.count("sync") != 0};
@@ -191,7 +190,7 @@ int32_t main(int32_t argc, char **argv) {
                 // AcquisitionMode:
                 camera.AcquisitionMode = Basler_UniversalCameraParams::AcquisitionMode_Continuous;
 
-                // TODO: FPS
+                // FPS
                 camera.AcquisitionFrameRateEnable = 1;
                 camera.AcquisitionFrameRateAbs = FPS;
 
@@ -220,6 +219,15 @@ int32_t main(int32_t argc, char **argv) {
                 // Packet size (should match MTU).
                 camera.GevSCPSPacketSize = PACKET_SIZE;
 
+                // Enable chunks in general to read meta data.
+                if (camera.ChunkModeActive.TrySetValue(true)) {
+                    // Enable time stamp chunks.
+                    camera.ChunkSelector.SetValue(Basler_UniversalCameraParams::ChunkSelector_Timestamp);
+                    camera.ChunkEnable.SetValue(true);
+                    camera.ChunkSelector.SetValue(Basler_UniversalCameraParams::ChunkSelector_ExposureTime);
+                    camera.ChunkEnable.SetValue(true);
+                }
+
                 // The parameter MaxNumBuffer can be used to control the count of buffers
                 // allocated for grabbing. The default value of this parameter is 10.
                 camera.MaxNumBuffer = 10;
@@ -230,7 +238,8 @@ int32_t main(int32_t argc, char **argv) {
                 camera.StartGrabbing();
 
                 // This smart pointer will receive the grab result data.
-                CGrabResultPtr ptrGrabResult;
+                //CGrabResultPtr ptrGrabResult;
+                CBaslerUniversalGrabResultPtr ptrGrabResult;
 
                 // Frame grabbing loop.
                 const uint32_t timeoutInMS{10000};
@@ -242,18 +251,20 @@ int32_t main(int32_t argc, char **argv) {
                     if (ptrGrabResult->GrabSucceeded()) {
                         cluon::data::TimeStamp nowOnHost = cluon::time::now();
                         int64_t timeStampInMicroseconds = (static_cast<int64_t>(ptrGrabResult->GetTimeStamp())/static_cast<int64_t>(1000));
+                        std::cout << "ChunkData: " << ptrGrabResult->IsChunkDataAvailable() << std::endl;
                         if (INFO) {
+                            if (ptrGrabResult->ChunkTimestamp.IsReadable()) {
+                                timeStampInMicroseconds = (static_cast<int64_t>(ptrGrabResult->ChunkTimestamp.GetValue())/static_cast<int64_t>(1000));
+                            }
+
                             double exposureTime{0};
-                            {
-                          //    INodeMap& nodemap = ptrGrabResult->GetChunkDataNodeMap();
-                          //    CEnumParameter exposureTimeVal(nodemap, "ChunkExposureTime");
-                          //    std::cout << exposureTimeVal.GetValue() << std::endl;
+                            if (ptrGrabResult->ChunkExposureTime.IsReadable()) {
+                                exposureTime = ptrGrabResult->ChunkExposureTime.GetValue();
                             }
                             std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us (delta to host: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << " us); sizeOfPayload: " << ptrGrabResult->GetPayloadSize() << ", exposure time: " << exposureTime << std::endl;
                         }
                         cluon::data::TimeStamp ts{cluon::time::fromMicroseconds(timeStampInMicroseconds)};
                         const uint8_t *imageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
-                        std::cout << "Gray value of first pixel: " << (uint32_t) imageBuffer[0] << std::endl << std::endl;
 
                         sharedMemoryI420->lock();
                         sharedMemoryI420->setTimeStamp(ts);
