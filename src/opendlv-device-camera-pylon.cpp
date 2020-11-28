@@ -195,6 +195,18 @@ int32_t main(int32_t argc, char **argv) {
                 camera.AcquisitionFrameRateEnable = 1;
                 camera.AcquisitionFrameRateAbs = FPS;
 
+                if (SYNC) {
+                    // Set cameras to cpature at same point in time.
+                    camera.SyncFreeRunTimerTriggerRateAbs = FPS;
+                    camera.SyncFreeRunTimerStartTimeHigh = 0;
+                    camera.SyncFreeRunTimerStartTimeLow = 0;
+                    camera.SyncFreeRunTimerEnable = true;
+                }
+                else {
+                    camera.SyncFreeRunTimerEnable = false;
+                    camera.SyncFreeRunTimerUpdate();
+                }
+
                 //camera.TriggerSelector = Basler_UniversalCameraParams::TriggerSelector_AcquisitionStart;
                 //camera.TriggerSelector = Basler_UniversalCameraParams::TriggerSelector_FrameBurstStart;
                 camera.TriggerSelector = Basler_UniversalCameraParams::TriggerSelector_FrameStart;
