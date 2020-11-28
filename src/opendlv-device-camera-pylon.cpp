@@ -203,6 +203,9 @@ int32_t main(int32_t argc, char **argv) {
                 camera.OffsetX = OFFSET_X;
                 camera.OffsetY = OFFSET_Y;
 
+                // Packet size (should match MTU).
+                camera.GevSCPSPacketSize = PACKET_SIZE;
+
                 // The parameter MaxNumBuffer can be used to control the count of buffers
                 // allocated for grabbing. The default value of this parameter is 10.
                 camera.MaxNumBuffer = 10;
@@ -217,20 +220,18 @@ int32_t main(int32_t argc, char **argv) {
 
                 // Frame grabbing loop.
                 const uint32_t timeoutInMS{500};
-                while (!cluon::TerminateHandler::instance().isTerminated.load() &&
-                       camera.IsGrabbing()) {
-                    //int64_t timeStampInMicroseconds = (static_cast<int64_t>(grabResult.TimeStamp)/static_cast<int64_t>(1000));
-                    //if (INFO) {
-                    //    std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us (delta to host: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << " us); sizeOfPayload: " << sizeOfPayload << std::endl;
-                    //}
-                    //cluon::data::TimeStamp ts{cluon::time::fromMicroseconds(timeStampInMicroseconds)};
-                    cluon::data::TimeStamp ts{cluon::time::now()};
-
+                while (!cluon::TerminateHandler::instance().isTerminated.load() && camera.IsGrabbing()) {
                     // Wait for an image and then retrieve it. A timeout of 5000 ms is used.
                     camera.RetrieveResult(timeoutInMS, ptrGrabResult, TimeoutHandling_ThrowException);
 
                     // Image grabbed successfully?
                     if (ptrGrabResult->GrabSucceeded()) {
+                        cluon::data::TimeStamp nowOnHost = cluon::time::now();
+                        int64_t timeStampInMicroseconds = (static_cast<int64_t>(ptrGrabResult->GetTimeStamp())/static_cast<int64_t>(1000));
+                        if (INFO) {
+                            std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us (delta to host: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << " us); sizeOfPayload: " << ptrGrabResult->GetPayloadSize() << std::endl;
+                        }
+                        cluon::data::TimeStamp ts{cluon::time::fromMicroseconds(timeStampInMicroseconds)};
                         const uint8_t *imageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
                         std::cout << "Gray value of first pixel: " << (uint32_t) imageBuffer[0] << std::endl << std::endl;
 
