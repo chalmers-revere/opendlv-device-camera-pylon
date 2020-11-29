@@ -154,6 +154,10 @@ message opendlv.proxy.ImageReading [id = 1055] {
     bytes data [id = 4];
 }
 
+message opendlv.proxy.AboutImageReading [id = 1056] {
+    float exposureTime [id = 1];
+}
+
 message opendlv.proxy.ImageReadingShared [id = 14] {
     string name [id = 1];
     uint32 size [id = 2];

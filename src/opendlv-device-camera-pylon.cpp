@@ -16,6 +16,7 @@
  */
 
 #include "cluon-complete.hpp"
+#include "opendlv-standard-message-set.hpp"
 
 #include <pylon/PylonIncludes.h>
 #include <pylon/BaslerUniversalInstantCamera.h>
@@ -39,11 +40,14 @@ int32_t main(int32_t argc, char **argv) {
 
     int32_t retCode{0};
     auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
-    if ( (0 == commandlineArguments.count("camera")) ||
+    if ( (0 == commandlineArguments.count("cid")) ||
+         (0 == commandlineArguments.count("camera")) ||
          (0 == commandlineArguments.count("width")) ||
          (0 == commandlineArguments.count("height")) ) {
         std::cerr << argv[0] << " interfaces with a Pylon camera (given by the numerical identifier, e.g., 0) and provides the captured image in two shared memory areas: one in I420 format and one in ARGB format." << std::endl;
         std::cerr << "Usage:   " << argv[0] << " --camera=<identifier> --width=<width> --height=<height> [--name.i420=<unique name for the shared memory in I420 format>] [--name.argb=<unique name for the shared memory in ARGB format>] --width=W --height=H [--offsetX=X] [--offsetY=Y] [--packetsize=1500] [--fps=17] [--verbose]" << std::endl;
+        std::cerr << "         --cid:    CID of the OD4Session to send and receive messages" << std::endl;
+        std::cerr << "         --id:     ID to use as senderStamp for sending" << std::endl;
         std::cerr << "         --camera:     serial number for Pylon-compatible camera to be used" << std::endl;
         std::cerr << "         --name.i420:  name of the shared memory for the I420 formatted image; when omitted, 'video0.i420' is chosen" << std::endl;
         std::cerr << "         --name.argb:  name of the shared memory for the I420 formatted image; when omitted, 'video0.argb' is chosen" << std::endl;
@@ -63,6 +67,7 @@ int32_t main(int32_t argc, char **argv) {
         retCode = 1;
     }
     else {
+        const uint32_t ID{(commandlineArguments["id"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["id"])) : 0};
         const std::string CAMERA{commandlineArguments["camera"]};
         const uint32_t WIDTH{static_cast<uint32_t>(std::stoi(commandlineArguments["width"]))};
         const uint32_t HEIGHT{static_cast<uint32_t>(std::stoi(commandlineArguments["height"]))};
@@ -76,6 +81,8 @@ int32_t main(int32_t argc, char **argv) {
         const bool SYNC{commandlineArguments.count("sync") != 0};
         const bool INFO{commandlineArguments.count("info") != 0};
         const bool SKIP_ARGB{commandlineArguments.count("skip.argb") != 0};
+
+        cluon::OD4Session od4{static_cast<uint16_t>(std::stoi(commandlineArguments["cid"]))};
 
         // Set up the names for the shared memory areas.
         std::string NAME_I420{"video0.i420"};
@@ -243,27 +250,34 @@ int32_t main(int32_t argc, char **argv) {
 
                 // Frame grabbing loop.
                 const uint32_t timeoutInMS{10000};
-                while (!cluon::TerminateHandler::instance().isTerminated.load() && camera.IsGrabbing()) {
+                while (od4.isRunning() && camera.IsGrabbing()) {
                     // Wait for an image and then retrieve it. A timeout of 5000 ms is used.
                     camera.RetrieveResult(timeoutInMS, ptrGrabResult, TimeoutHandling_ThrowException);
 
                     // Image grabbed successfully?
                     if (ptrGrabResult->GrabSucceeded()) {
+                        double exposureTime{0};
                         cluon::data::TimeStamp nowOnHost = cluon::time::now();
                         int64_t timeStampInMicroseconds = (static_cast<int64_t>(ptrGrabResult->GetTimeStamp())/static_cast<int64_t>(1000));
-                        int64_t grabTimeStamp{timeStampInMicroseconds};
                         if (INFO) {
                             if (ptrGrabResult->ChunkTimestamp.IsReadable()) {
                                 timeStampInMicroseconds = (static_cast<int64_t>(ptrGrabResult->ChunkTimestamp.GetValue())/static_cast<int64_t>(1000));
                             }
 
-                            double exposureTime{0};
                             if (ptrGrabResult->ChunkExposureTime.IsReadable()) {
                                 exposureTime = ptrGrabResult->ChunkExposureTime.GetValue();
                             }
-                            std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << "/" << grabTimeStamp << " us (delta to host: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << " us); sizeOfPayload: " << ptrGrabResult->GetPayloadSize() << ", exposure time: " << exposureTime << std::endl;
+                            std::cout << "[opendlv-device-camera-pylon]: Grabbed frame at " << timeStampInMicroseconds << " us (delta to host: " << cluon::time::deltaInMicroseconds(nowOnHost, cluon::time::fromMicroseconds(timeStampInMicroseconds)) << " us); sizeOfPayload: " << ptrGrabResult->GetPayloadSize() << ", exposure time: " << exposureTime << std::endl;
                         }
                         cluon::data::TimeStamp ts{cluon::time::fromMicroseconds(timeStampInMicroseconds)};
+
+                        {
+                            // Propagate meta data.
+                            opendlv::proxy::AboutImageReading air;
+                            air.exposureTime(static_cast<float>(exposureTime));
+                            od4.send(air, ts, ID);
+                        }
+
                         const uint8_t *imageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
 
                         sharedMemoryI420->lock();
