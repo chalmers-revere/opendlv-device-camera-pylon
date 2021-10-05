@@ -162,7 +162,21 @@ int32_t main(int32_t argc, char **argv) {
                 camera.RegisterConfiguration( new CAcquireContinuousConfiguration, RegistrationMode_ReplaceAll, Cleanup_Delete);
 
                 // Enable PTP for the current camera.
-                camera.GevIEEE1588 = true;
+                GenICam::gcstring s = camera.DeviceFamilyName.GetValue();
+                if (s == "ace 2") {
+                  //camera.BslPtpPriority1.SetValue(128);
+                  //camera.BslPtpProfile.SetValue(BslPtpProfile_DelayRequestResponseDefaultProfile);
+                  //camera.BslPtpNetworkMode.SetValue(BslPtpNetworkMode_Unicast);
+                  // Set the IP address of the first unicast device to 192.168.10.12
+                  // (0xC0 = 192, 0xA8 = 168, 0x0A = 10, 0x0C = 12)
+                  //camera.BslPtpUcPortAddrIndex.SetValue(0);
+                  //camera.BslPtpUcPortAddr.SetValue((0xC0A80A0C);
+                  //camera.BslPtpManagementEnable.SetValue(true);
+                  //camera.BslPtpTwoStep.SetValue(false);
+                  //camera.PtpEnable.SetValue(true);
+                } else {
+                  camera.GevIEEE1588 = true;
+                }
 
                 {
                   // Configuring YUV422_YUYV_Packed pixel format.
@@ -174,43 +188,51 @@ int32_t main(int32_t argc, char **argv) {
                   }
                 }
 
-                camera.GrayValueAdjustmentDampingAbs = 0.683594;
-                camera.BalanceWhiteAdjustmentDampingAbs = 0.976562;
-                camera.AutoFunctionProfile = Basler_UniversalCameraParams::AutoFunctionProfile_GainMinimum;
+                if (s != "ace 2") {
+                  camera.GrayValueAdjustmentDampingAbs = 0.683594;
+                  camera.BalanceWhiteAdjustmentDampingAbs = 0.976562;
+                  camera.AutoFunctionProfile = Basler_UniversalCameraParams::AutoFunctionProfile_GainMinimum;
 
-                // AutoGain:
-                camera.AutoTargetValue = 50;
-                camera.AutoFunctionAOISelector = Basler_UniversalCameraParams::AutoFunctionAOISelector_AOI1;
-                camera.AutoFunctionAOIUsageIntensity = 1;
-                camera.AutoFunctionAOIUsageWhiteBalance = 1;
-                camera.AutoFunctionAOIWidth = WIDTH;
-                camera.AutoFunctionAOIHeight = HEIGHT;
-                camera.AutoFunctionAOIOffsetX = OFFSET_X;
-                camera.AutoFunctionAOIOffsetY = OFFSET_Y;
-                camera.GainAuto = Basler_UniversalCameraParams::GainAuto_Continuous;
+                  // AutoGain:
+                  camera.AutoTargetValue = 50;
+                  camera.AutoFunctionAOISelector = Basler_UniversalCameraParams::AutoFunctionAOISelector_AOI1;
+                  camera.AutoFunctionAOIUsageIntensity = 1;
+                  camera.AutoFunctionAOIUsageWhiteBalance = 1;
+                  camera.AutoFunctionAOIWidth = WIDTH;
+                  camera.AutoFunctionAOIHeight = HEIGHT;
+                  camera.AutoFunctionAOIOffsetX = OFFSET_X;
+                  camera.AutoFunctionAOIOffsetY = OFFSET_Y;
+                  camera.GainAuto = Basler_UniversalCameraParams::GainAuto_Continuous;
 
-                // AutoExposure:
-                camera.AutoExposureTimeAbsLowerLimit = AUTOEXPOSURETIMEABSLOWERLIMIT;
-                camera.AutoExposureTimeAbsUpperLimit = AUTOEXPOSURETIMEABSUPPERLIMIT;
-                camera.ExposureAuto = Basler_UniversalCameraParams::ExposureAuto_Continuous;
+                  // AutoExposure:
+                  camera.AutoExposureTimeAbsLowerLimit = AUTOEXPOSURETIMEABSLOWERLIMIT;
+                  camera.AutoExposureTimeAbsUpperLimit = AUTOEXPOSURETIMEABSUPPERLIMIT;
+                  camera.ExposureAuto = Basler_UniversalCameraParams::ExposureAuto_Continuous;
+                }
 
                 // AcquisitionMode:
                 camera.AcquisitionMode = Basler_UniversalCameraParams::AcquisitionMode_Continuous;
 
                 // FPS
                 camera.AcquisitionFrameRateEnable = 1;
-                camera.AcquisitionFrameRateAbs = FPS;
-
-                if (SYNC) {
-                    // Set cameras to cpature at same point in time.
-                    camera.SyncFreeRunTimerTriggerRateAbs = FPS;
-                    camera.SyncFreeRunTimerStartTimeHigh = 0;
-                    camera.SyncFreeRunTimerStartTimeLow = 0;
-                    camera.SyncFreeRunTimerEnable = true;
+                if (s != "ace 2") {
+                  camera.AcquisitionFrameRateAbs = FPS;
+                } else {
+                  camera.AcquisitionFrameRate = FPS;
                 }
-                else {
-                    camera.SyncFreeRunTimerEnable = false;
-                    camera.SyncFreeRunTimerUpdate();
+
+                if (s != "ace 2") {
+                  if (SYNC) {
+                      // Set cameras to cpature at same point in time.
+                      camera.SyncFreeRunTimerTriggerRateAbs = FPS;
+                      camera.SyncFreeRunTimerStartTimeHigh = 0;
+                      camera.SyncFreeRunTimerStartTimeLow = 0;
+                      camera.SyncFreeRunTimerEnable = true;
+                  }
+                  else {
+                      camera.SyncFreeRunTimerEnable = false;
+                      camera.SyncFreeRunTimerUpdate();
+                  }
                 }
 
                 //camera.TriggerSelector = Basler_UniversalCameraParams::TriggerSelector_AcquisitionStart;
