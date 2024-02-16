@@ -36,10 +36,10 @@ RUN cd /tmp && \
     cd libyuv &&\
     make -f linux.mk libyuv.a && cp libyuv.a /usr/lib && cd include && cp -r * /usr/include
 RUN cd /tmp && \
-    wget https://www.baslerweb.com/media/downloads/software/pylon_software/pylon_6.1.1.19861_x86_64_setup.tar.gz && \
+    wget https://www2.baslerweb.com/media/downloads/software/pylon_software/pylon_6.1.1.19861_x86_64_setup.tar.gz && \
     tar xvzf pylon_6.1.1.19861_x86_64_setup.tar.gz && \
     mkdir -p /opt/pylon6 && \
-    tar xvzf pylon_6.1.1.19861_x86_64.tar.gz -C /opt/pylon6 
+    tar xvzf pylon_6.1.1.19861_x86_64.tar.gz -C /opt/pylon6
 ADD . /opt/sources
 WORKDIR /opt/sources
 RUN mkdir build && \
